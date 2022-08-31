@@ -1,15 +1,14 @@
 #created by BWM to take Kecks big data load
 #8/30/22 first creation
 
-from operator import length_hint
 import numpy as np
 import sys
 import os
 import matplotlib.pyplot as plt
 import struct
 
-cwd = os.getcwd()
-imageData = open(cwd +"PAD_Anal\\KeckData\\back.raw","rb")
+#cwd = os.getcwd()
+#imageData = open(cwd +"\\PAD_Anal\\KeckData\\back.raw","rb")
 
 def keckFrame(dataFile):
     headerBites = dataFile.read(16)
@@ -22,7 +21,7 @@ def keckFrame(dataFile):
     # for val in frameMeta:
     #     print(hex(val))
 
-    capNum = (frameMeta[6]>>24)&0xf
+    capNum = int(frameMeta[6]>>24)&0xf
     print(capNum)
     dataFile.read(256-16-16-16-41)
     dt = np.dtype('uint16')
@@ -31,12 +30,12 @@ def keckFrame(dataFile):
     return frameParms, lengthParms, frameMeta, capNum, data
 
 
-Frame1 = keckFrame(imageData)
-Frame2 = keckFrame(imageData)
-data2d1 = np.resize(Frame1[4],[512,512])
-data2d2 = np.resize(Frame2[4],[512,512])
-fig,axs = plt.subplots(3,1)
-axs[0].imshow(data2d1)
-axs[1].imshow(data2d2)
-axs[2].imshow(data2d1-data2d2)
-plt.show()
+# Frame1 = keckFrame(imageData)
+# Frame2 = keckFrame(imageData)
+# data2d1 = np.resize(Frame1[4],[512,512])
+# data2d2 = np.resize(Frame2[4],[512,512])
+# fig,axs = plt.subplots(3,1)
+# axs[0].imshow(data2d1)
+# axs[1].imshow(data2d2)
+# axs[2].imshow(data2d1-data2d2)
+# plt.show()
