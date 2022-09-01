@@ -28,7 +28,7 @@ mmcmd="mmcmd"
 # warn if deleting first
 # todo: remove directories:
 # loop:
-  rm -rf "/mnt/raid/set-$setname/"
+#  rm -rf "/mnt/raid/set-$setname/"
   
 #  rm "/home/sydor/Sydor/mmclient/out/default/Fore_$integration"
 #  rm "/home/sydor/Sydor/mmclient/out/default/Back_$integration"
@@ -46,7 +46,7 @@ nFrames=10
 
 #Set number of frames
 $mmcmd "Image_Count $nFrames"
-$mmcmd "Ext_Trig 0"
+$mmcmd "SW_Trig"
 
 
 #set integration time in microseconds ( note: actual time may now be correct)
@@ -66,8 +66,8 @@ $mmcmd "startset $setname"
 	#  Background image
 	#
 	# assumes a hardware trigger
-	#$mmcmd "startrun -t"  
-   #$mmcmd "status -wait"
+	$mmcmd "startrun vref_Back"  
+   $mmcmd "status -wait"
    # Retrieve run 
    #$mmcmd "getframe -$nFrames"
   
@@ -88,8 +88,9 @@ $mmcmd "startset $setname"
 
 
       #echo "DEBUG: About to StartRun" & read -n 1 -s
-      $mmcmd "vrefbuf $bias"  
-      $mmcmd "vrefbp $bias"  
+      $mmcmd "DFPGA_DAC_OUT_VREF_BUF $bias" 
+       
+      $mmcmd "DFPGA_DAC_OUT_VREF_BP $bias"  
       runname="scan_vref_$bias"
       $mmcmd "startrun $runname"  
              

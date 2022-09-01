@@ -46,7 +46,7 @@ nFrames=10
 
 #Set number of frames
 $mmcmd "Image_Count $nFrames"
-$mmcmd "Ext_Trig 0"
+$mmcmd "SW_Trig"
 
 
 #set integration time in microseconds ( note: actual time may now be correct)
@@ -66,8 +66,8 @@ $mmcmd "startset $setname"
 	#  Background image
 	#
 	# assumes a hardware trigger
-	#$mmcmd "startrun -t"  
-   #$mmcmd "status -wait"
+	$mmcmd "startrun ISSAB_Back"  
+   $mmcmd "status -wait"
    # Retrieve run 
    #$mmcmd "getframe -$nFrames"
   
@@ -88,7 +88,7 @@ $mmcmd "startset $setname"
 
 
       #echo "DEBUG: About to StartRun" & read -n 1 -s
-      $mmcmd "issAB $bias"  
+      $mmcmd "DFPGA_DAC_OUT_V_ISS_AB $bias"  
    
       runname="scan_issAB_$bias"
       $mmcmd "startrun $runname"  
