@@ -6,9 +6,11 @@ import sys
 import os
 import matplotlib.pyplot as plt
 import struct
-
-#cwd = os.getcwd()
-#imageData = open(cwd +"\\PAD_Anal\\KeckData\\back.raw","rb")
+#pFolder = "vref1"
+#dFolder = "vref"
+#BiasV = str(1800)
+# #cwd = os.getcwd()
+#imageData = open("/mnt/raid/keckpad/set-" + pFolder +"/run-scan_" + dFolder + "_"+ str(BiasV) + "/frames/scan_"+ dFolder + "_" + str(BiasV) +"_00000001.raw","rb")
 
 def keckFrame(dataFile):
     headerBites = dataFile.read(16)
@@ -22,7 +24,6 @@ def keckFrame(dataFile):
     #     print(hex(val))
 
     capNum = int(frameMeta[6]>>24)&0xf
-    print(capNum)
     dataFile.read(256-16-16-16-41)
     dt = np.dtype('uint16')
     data = np.fromfile(dataFile, count = (lengthParms[1] * lengthParms[2]), dtype = dt)
@@ -30,12 +31,15 @@ def keckFrame(dataFile):
     return frameParms, lengthParms, frameMeta, capNum, data
 
 
-# Frame1 = keckFrame(imageData)
-# Frame2 = keckFrame(imageData)
-# data2d1 = np.resize(Frame1[4],[512,512])
-# data2d2 = np.resize(Frame2[4],[512,512])
-# fig,axs = plt.subplots(3,1)
-# axs[0].imshow(data2d1)
-# axs[1].imshow(data2d2)
-# axs[2].imshow(data2d1-data2d2)
-# plt.show()
+#Frame1 = keckFrame(imageData)
+# # # Frame2 = keckFrame(imageData)
+#data2d1 = np.resize(Frame1[4],[512,512])
+# # capAvg = np.mean(data2d1[291:364,173:240]) 
+# # print(capAvg)
+ # # data2d2 = np.resize(Frame2[4],[512,512])
+# #  #fig,axs = plt.subplots(3,1)
+#plt.imshow(data2d1[137:270,139:270])
+# #     #axs[1].imshow(data2d2)
+# # # axs[2].imshow(data2d1-data2d2)
+#plt.show()
+# Frame1 = ()

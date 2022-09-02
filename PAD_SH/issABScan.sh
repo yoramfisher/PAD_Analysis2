@@ -66,7 +66,7 @@ $mmcmd "startset $setname"
 	#  Background image
 	#
 	# assumes a hardware trigger
-	$mmcmd "startrun ISSAB_Back"  
+	$mmcmd "startrun issAB_Back"  
    $mmcmd "status -wait"
    # Retrieve run 
    #$mmcmd "getframe -$nFrames"
