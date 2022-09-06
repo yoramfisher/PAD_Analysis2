@@ -24,10 +24,15 @@ def keckFrame(dataFile):
     #     print(hex(val))
 
     capNum = int(frameMeta[6]>>24)&0xf
+<<<<<<< HEAD
     dataFile.read(256-16-16-16-41)
+=======
+    print(capNum)
+    dataFile.read(256-(16+16+16+41)) #read remainder of header bites
+>>>>>>> b6e71f9aeb36d883ac9e6b3181950d20b145ca71
     dt = np.dtype('uint16')
     data = np.fromfile(dataFile, count = (lengthParms[1] * lengthParms[2]), dtype = dt)
-    dataFile.read(1024-256)
+    dataFile.read(768) #read footer bites 
     return frameParms, lengthParms, frameMeta, capNum, data
 
 
