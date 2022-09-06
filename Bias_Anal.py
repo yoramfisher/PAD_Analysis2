@@ -9,7 +9,7 @@ import sys
 
 
 cwd = os.getcwd()
-pFolder = "vref1"
+pFolder = "vref_50kv"
 dFolder = "vref"
 backImageData = open("/mnt/raid/keckpad/set-" + pFolder +"/run-" + dFolder + "_Back/frames/"+ dFolder + "_Back_00000001.raw","rb")
 
@@ -24,10 +24,12 @@ for fIdex in range(numImages):
 avgBack = backStack/(numImages/8.0)
 capPlot = ()
 capPlot2 = ()
+capPlot3 = ()
+capPlot4 = ()
 listBias = ()
 #values set for ISSB Change range for vRef scan
 for junk in range(8):
-   for val in range (10):      # number of daughter folders
+   for val in range (9):      # number of daughter folders
       BiasV = (val + 1) *100 + 900       # range of voltages you used 
       listBias = np.append(listBias, BiasV)
 
@@ -43,7 +45,7 @@ for junk in range(8):
       avgFore = foreStack/(numImages/8.0)
 
       #not background subtracting image
-      fmb = foreStack
+      fmb = avgFore# - avgBack
 
    
       Cap = junk
@@ -51,11 +53,16 @@ for junk in range(8):
       capAvg2 = np.mean(fmb[Cap,411:484,158:225])      # second module down on the right, R ASIC 
       capPlot = np.append(capPlot, capAvg)
       capPlot2 = np.append(capPlot2, capAvg2)
-
+      capAvg3 = np.mean(fmb[Cap,38:102,400:455])      # bottom left module, L ASIC 
+      capAvg4 = np.mean(fmb[Cap,153:200,416:480])      # bottom left module, R ASIC 
+      capPlot3 = np.append(capPlot3, capAvg3)
+      capPlot4 = np.append(capPlot4, capAvg4)
 
    y = listBias
-   plt.scatter(y,capPlot, label='left ASIC')
-   plt.scatter(y,capPlot2, label='right ASIC')
+   plt.plot(y,capPlot, label='left ASIC')
+   plt.plot(y,capPlot2, label='right ASIC')
+   plt.plot(y,capPlot3, label='2left ASIC')
+   plt.plot(y,capPlot4, label='2right ASIC')
    plt.legend();
    plt.xlabel('DAC voltage (mV)');
    plt.ylabel('mean (ADU)');
@@ -63,7 +70,11 @@ for junk in range(8):
    plt.savefig('/mnt/raid/keckpad/set-' + pFolder +'/Cap_' + str(Cap)+ '.png')
    #plt.show()  
    plt.close()
-
+   capPlot = ()
+   capPlot2 = ()
+   capPlot3 = ()
+   capPlot4 = ()
+   listBias = ()
    # fig,axs = plt.subplots(1)
    # # axs[0].imshow(avgBack[1,:,:])
    # plt.imshow(fmb[3,:,:])

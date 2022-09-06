@@ -71,8 +71,8 @@ $mmcmd "startset $setname"
    # Retrieve run 
    #$mmcmd "getframe -$nFrames"
   
-
-   #sleep 1
+   $mmcmd "Shutter_Open 1"
+   sleep 1
  
 	#  Foreground image
 	#
@@ -99,5 +99,5 @@ $mmcmd "startset $setname"
    done
         
    $mmcmd "status -wait -verbose"
-
+   $mmcmd "Shutter_Open 0"
 

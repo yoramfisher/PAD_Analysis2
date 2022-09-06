@@ -66,7 +66,7 @@ $mmcmd "startset $setname"
 	#  Background image
 	#
 	# assumes a hardware trigger
-	$mmcmd "startrun ISSAB_Back"  
+	$mmcmd "startrun issAB_Back"  
    $mmcmd "status -wait"
    # Retrieve run 
    #$mmcmd "getframe -$nFrames"
@@ -81,6 +81,9 @@ $mmcmd "startset $setname"
 	#$mmcmd "integration_usec $integration"
 
 	#assumes a hardware trigger
+   $mmcmd "Shutter_Open 1"
+   
+   sleep 1
 
    for i in {1..9}
    do
@@ -98,5 +101,9 @@ $mmcmd "startset $setname"
    done
         
    $mmcmd "status -wait -verbose"
+
+   $mmcmd "Shutter_Open 0"
+   
+   sleep 1
 
 
