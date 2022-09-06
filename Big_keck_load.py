@@ -20,7 +20,7 @@ def keckFrame(dataFile):
     frameMeta = struct.unpack("<QIIQIIIIB",headerBites)
     # for val in frameMeta:
     #     print(hex(val))
-    frameNum = frameMeta[1]
+
     capNum = int(frameMeta[6]>>24)&0xf
     #print(capNum)
 
