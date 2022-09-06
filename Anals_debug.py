@@ -51,13 +51,22 @@ listBias = ()
 #       capPlot2 = np.append(capPlot2, capAvg2)
 
 fNum = 65
-plotData = backStack[fNum,:,:,:]
-plotData = np.sum(plotData, axis=0)
-plt.imshow(plotData)
-plt.show()  
-plt.close()
+plotData = backStack[:,:,:,:]
+#plotData = np.average(plotData, axis=1)
+plotData = np.average(plotData, axis=0)
+# plotData = plotData[4,:,:]
+# plt.imshow(plotData)
+# plt.show()  
+# plt.close()
 
-   # fig,axs = plt.subplots(1)
-   # # axs[0].imshow(avgBack[1,:,:])
-   # plt.imshow(fmb[3,:,:])
-   # plt.show()
+fig,axs = plt.subplots(2,4)
+axs[0,0].imshow(plotData[0,:,:])
+axs[0,1].imshow(plotData[1,:,:])
+axs[0,2].imshow(plotData[2,:,:])
+axs[0,3].imshow(plotData[3,:,:])
+axs[1,0].imshow(plotData[4,:,:])
+axs[1,1].imshow(plotData[5,:,:])
+axs[1,2].imshow(plotData[6,:,:])
+axs[1,3].imshow(plotData[7,:,:])
+#plt.imshow(fmb[3,:,:])
+plt.show()
