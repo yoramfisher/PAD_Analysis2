@@ -2,7 +2,7 @@
 #program to analyze keck data while varying DAC bias voltages
 
 import numpy as np
-import Big_keck_load 
+import Big_keck_load as BKL
 import os
 import matplotlib.pyplot as plt
 import sys
@@ -18,7 +18,7 @@ numImages = int(os.path.getsize("/mnt/raid/keckpad/set-" + pFolder +"/run-" + dF
 
 #Calc cap backs
 for fIdex in range(numImages):
-   payload = Big_keck_load.keckFrame(backImageData)
+   payload = BKL.keckFrame(backImageData)
    backStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
 
 avgBack = backStack/(numImages/8.0)
@@ -37,7 +37,7 @@ for junk in range(8):
 
       #Calc cap backs
       for fIdex in range(numImages):
-         payloadFore = Big_keck_load.keckFrame(foreImageData)
+         payloadFore = BKL.keckFrame(foreImageData)
          foreStack[(payloadFore[3]-1)%8,:,:] += np.resize(payloadFore[4],[512,512])
 
       avgFore = foreStack/(numImages/8.0)

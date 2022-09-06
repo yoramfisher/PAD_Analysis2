@@ -7,8 +7,8 @@ import os
 import matplotlib.pyplot as plt
 import struct
 
-#cwd = os.getcwd()
-#imageData = open(cwd +"\\PAD_Anal\\KeckData\\back.raw","rb")
+# cwd = os.getcwd()
+# imageData = open(cwd +"\\KeckData\\back.raw","rb")
 
 def keckFrame(dataFile):
     headerBites = dataFile.read(16)
@@ -20,18 +20,18 @@ def keckFrame(dataFile):
     frameMeta = struct.unpack("<QIIQIIIIB",headerBites)
     # for val in frameMeta:
     #     print(hex(val))
-
+    frameNum = frameMeta[1]
     capNum = int(frameMeta[6]>>24)&0xf
-    print(capNum)
+    #print(capNum)
     dataFile.read(256-(16+16+16+41)) #read remainder of header bites
     dt = np.dtype('uint16')
     data = np.fromfile(dataFile, count = (lengthParms[1] * lengthParms[2]), dtype = dt)
     dataFile.read(768) #read footer bites 
-    return frameParms, lengthParms, frameMeta, capNum, data
-
+    return frameParms, lengthParms, frameMeta, capNum, data, frameNum
 
 # Frame1 = keckFrame(imageData)
-# Frame2 = keckFrame(imageData)
+
+# print(Frame1[5])
 # data2d1 = np.resize(Frame1[4],[512,512])
 # data2d2 = np.resize(Frame2[4],[512,512])
 # fig,axs = plt.subplots(3,1)
