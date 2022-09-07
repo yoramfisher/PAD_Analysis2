@@ -34,7 +34,7 @@ foreImageFilename = 'keck_single_pixel/run-scan_issbufPIX_f_800/frames/scan_issb
 numForeImages = int(os.path.getsize(foreImageFilename)/(1024+512*512*2));
 foreImageFile = open(foreImageFilename, "rb");
 
-for fIdx in range(numBackImages):
+for fIdx in range(numForeImages):
     payload = BKL.keckFrame(foreImageFile);
     foreStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512]);
 foreStack = foreStack/(numForeImages/8); # Average the background
@@ -44,9 +44,10 @@ foreImageFile.close();
 fmbImage = foreStack - backStack;
 
 # Save the computed images
-foreStack.tofile('fore_avg.raw');
-backStack.tofile('back_avg.raw');
-fmbImage.tofile('fmb.raw');
+# Uncomment below if wish to save images
+#foreStack.tofile('fore_avg.raw');
+#backStack.tofile('back_avg.raw');
+#fmbImage.tofile('fmb.raw');
 
 singlePixelList = [];
 noPixelList = [];
@@ -79,8 +80,9 @@ for cap_idx in range(8):
                 # Determine list to append to
                 if test_pixel.value >= high_thresh[cap_idx]: # Pixel hot
                     singlePixelList.append(test_pixel);
-                else:           # Pixel cold
-                    noPixelList.append(test_pixel);
+                # uncomment below if you want to save no pixel list    
+                # else:           # Pixel cold
+                #     noPixelList.append(test_pixel);
 
 print("Tested {} pixels.".format(total_pixels));
 print("Cold neighborhoods: {}".format(cold_neighborhoods));
@@ -91,11 +93,12 @@ for curr_pixel in singlePixelList:
     single_pixel_file.write('{},{},{},{}\n'.format(curr_pixel.y, curr_pixel.x, curr_pixel.cap, curr_pixel.value));
 single_pixel_file.close();
 
-no_pixel_filename = 'no_pix.csv';
-no_pixel_file = open(no_pixel_filename, 'w');
-for curr_pixel in noPixelList:
-    no_pixel_file.write('{},{},{},{}\n'.format(curr_pixel.y, curr_pixel.x, curr_pixel.cap, curr_pixel.value));
-no_pixel_file.close();
+#uncomment below if you want to save no pixel list to file
+# no_pixel_filename = 'no_pix.csv';
+# no_pixel_file = open(no_pixel_filename, 'w');
+# for curr_pixel in noPixelList:
+#     no_pixel_file.write('{},{},{},{}\n'.format(curr_pixel.y, curr_pixel.x, curr_pixel.cap, curr_pixel.value));
+# no_pixel_file.close();
 
 # Pickle the results
 pickleFile = open('pixels.pickle', 'wb')
