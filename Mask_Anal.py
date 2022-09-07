@@ -1,6 +1,7 @@
 import numpy as np
 import Big_keck_load as BKL
 import os
+import pickle
 
 class EventPixel:
     def __init__(self):
@@ -96,3 +97,8 @@ for curr_pixel in noPixelList:
     no_pixel_file.write('{},{},{},{}\n'.format(curr_pixel.y, curr_pixel.x, curr_pixel.cap, curr_pixel.value));
 no_pixel_file.close();
 
+# Pickle the results
+pickleFile = open('pixels.pickle', 'wb')
+pickle.dump(singlePixelList, pickleFile);
+pickle.dump(noPixelList, pickleFile);
+pickleFile.close();
