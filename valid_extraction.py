@@ -13,8 +13,8 @@ def clip_hist(hist_data, clip_thresh):
 
 
 # Initialize the filenames
-bgFilename = '/mnt/ra`id/keckpad/set-issbufPIX_40KV/'
-fgFilename = '/mnt/raid/keckpad/set-issbufPIX_40KV/run-scan_issbufPIX_f_1200/frames/scan_issbufPIX_f_1200_00000001.raw';
+bgFilename = '/mnt/raid/keckpad/set-gain/run-20ms_back/frames/scan_20ms_back_0000001' +'.raw'
+#fgFilename = '/mnt/raid/keckpad/set-issbufPIX_40KV/run-scan_issbufPIX_f_1200/frames/scan_issbufPIX_f_1200_00000001.raw';
 maskFilename = 'single_pix.csv';
 
 pFolder = "vref_50kv"
@@ -38,19 +38,24 @@ pixelExtractor.load_mask(maskFilename);
 # Load background image # Need to re-load and average instead.
 #bgImage = np.fromfile(bgFilename, dtype=np.double).reshape((-1,512,512));
 
+numFiles = 8
+
+for num in range(numFiles):
+    images = num * 1000 + 1
+    fgFilename = '/mnt/raid/keckpad/set-gain/run-40kv_20ms_pinholes/frames/scan_40kv_20ms_pinholes_0000' + images + '.raw'
 # Iterate over all foreground images
-fgImageFile = open(fgFilename, "rb");
-numFgImages = int(os.path.getsize(fgFilename)/(1024+512*512*2));
+    fgImageFile = open(fgFilename, "rb");
+    numFgImages = int(os.path.getsize(fgFilename)/(1024+512*512*2));
 
 
-for fIdx in range(numFgImages):
-    payload = BKL.keckFrame(fgImageFile);
-    curr_frame = payload[4].reshape([512,512]);
-    fmbImg = curr_frame - backStack[(payload[3]-1)%8,:,:];
-    pixelExtractor.extract_frame(fmbImg, (payload[3]-1)%8); # FIXME Assumes that all caps are being used in the foreground image
-    
-# Close the file
-fgImageFile.close();
+    for fIdx in range(numFgImages):
+        payload = BKL.keckFrame(fgImageFile);
+        curr_frame = payload[4].reshape([512,512]);
+        fmbImg = curr_frame - backStack[(payload[3]-1)%8,:,:];
+        pixelExtractor.extract_frame(fmbImg, (payload[3]-1)%8); # FIXME Assumes that all caps are being used in the foreground image
+        
+    # Close the file
+    fgImageFile.close();
 
 # Now get some valid pixels
 valid_pixels0 = np.array(pixelExtractor.valid_values[0]);
