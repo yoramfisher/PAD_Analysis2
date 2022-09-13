@@ -11,7 +11,7 @@ fit_invoke = 0;
 def twoGauss(xdata, a, b, c, d, e, f, g):
     global fit_invoke;
     fit_invoke += 1;
-    print(fit_invoke, a, b, c, d, e, f, g);
+    #print(fit_invoke, a, b, c, d, e, f, g);
     result_y = np.arange(xdata.size).astype(np.double);
     for x_idx in range(xdata.size):
         x = xdata[x_idx];
@@ -22,7 +22,7 @@ def twoGauss(xdata, a, b, c, d, e, f, g):
 def threeGauss(xdata, a, b, c, d, e, f, g, j, k, l):
     global fit_invoke;
     fit_invoke += 1;
-    print(fit_invoke, a, b, c, d, e, f, g, j, k, l);
+    #print(fit_invoke, a, b, c, d, e, f, g, j, k, l);
     result_y = np.arange(xdata.size).astype(np.double);
     for x_idx in range(xdata.size):
         x = xdata[x_idx];
@@ -122,22 +122,32 @@ for cap_idx in range(NUM_CAPS):
 # Now do the curve fitting
 fit_pixels = [];
 for cap_idx in range(NUM_CAPS):
+    # Two Gauss
     guess_val = [ 1, 0, 10, 0.9, 30, 10, 0];
     guess_val[0] = np.max(hist_pixels);
     guess_val[3] = guess_val[0]*0.9;
-    guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
-    guess_val[0] = np.max(hist_pixels)
-    guess_val[3] = guess_val[0]*0.9
-    guess_val[6] = guess_val[0]*0.2;
-    #print(binRan[:-1])
-    #print(hist_pixels[cap_idx])
+    
+    # Three Gauss
+    #guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
+    #guess_val[0] = np.max(hist_pixels)
+    #guess_val[3] = guess_val[0]*0.9
+    #guess_val[6] = guess_val[0]*0.2;
+    
+    # Two Gauss
+    fit_vals = curve_fit(twoGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
+    fit_pixels.append(twoGauss(binRan[:-1], *fit_vals[0]));
 
-    #fit_vals = curve_fit(twoGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
-    fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
-    #fit_pixels.append(twoGauss(binRan[:-1], *fit_vals[0]));
-    fit_pixels.append(threeGauss(binRan[:-1], *fit_vals[0]));
-    print("Cap {} Fit:".format(cap_idx))                   
-    print(fit_vals[0])
+    # Three Gauss
+    #fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
+    #fit_pixels.append(threeGauss(binRan[:-1], *fit_vals[0]));
+
+    print("Cap {} Fit Centers:".format(cap_idx))                   
+    #print(fit_vals[0])
+    # Two Gauss
+    print("{}, {}".format(fit_vals[0][1], fit_vals[0][4]))
+
+    # Three Gauss
+    print("{}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7]))
 
 # Do the plotting
 fig,axs = plt.subplots(NUM_CAPS,1)
