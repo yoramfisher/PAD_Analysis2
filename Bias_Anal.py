@@ -9,40 +9,41 @@ import sys
 
 
 cwd = os.getcwd()
-pFolder = "vref_50kv"
-dFolder = "vref"
-backImageData = open("/mnt/raid/keckpad/set-" + pFolder +"/run-" + dFolder + "_Back/frames/"+ dFolder + "_Back_00000001.raw","rb")
+pFolder = "issBUF_40KV"
+dFolder = "issbuf"
+# backImageData = open("/mnt/raid/keckpad/set-" + pFolder +"/run-" + dFolder + "_719_b/frames/"+ dFolder + "_719_b_00000001.raw","rb")
 
-backStack = np.zeros((8,512,512),dtype=np.double)
-numImages = int(os.path.getsize("/mnt/raid/keckpad/set-" + pFolder +"/run-" + dFolder + "_Back/frames/"+ dFolder + "_Back_00000001.raw")/(1024+512*512*2))
+# backStack = np.zeros((8,512,512),dtype=np.double)
+# numImages = int(os.path.getsize("/mnt/raid/keckpad/set-" + pFolder +"/run-" + dFolder + "_719_b/frames/"+ dFolder + "_719_b_00000001.raw")/(1024+512*512*2))
 
-#Calc cap backs
-for fIdex in range(numImages):
-   payload = BKL.keckFrame(backImageData)
-   backStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
+# #Calc cap backs
+# for fIdex in range(numImages):
+#    payload = BKL.keckFrame(backImageData)
+#    backStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
 
-avgBack = backStack/(numImages/8.0)
+# avgBack = backStack/(numImages/8.0)
 capPlot = ()
 capPlot2 = ()
 capPlot3 = ()
 capPlot4 = ()
 listBias = ()
 #values set for ISSB Change range for vRef scan
+fuVal = [897,1297,1397,1597,1897]
 for junk in range(8):
-   for val in range (9):      # number of daughter folders
-      BiasV = (val + 1) *100 + 900       # range of voltages you used 
+   for val in range(10):      # number of daughter folders
+      BiasV = val*100 + 900      # range of voltages you used 
       listBias = np.append(listBias, BiasV)
-
-      foreImageData = open("/mnt/raid/keckpad/set-" + pFolder +"/run-scan_" + dFolder + "_"+ str(BiasV) + "/frames/scan_"+ dFolder + "_" + str(BiasV) +"_00000001.raw","rb")
+      forePath = "/mnt/raid/keckpad/set-" + pFolder +"/run-scan_" + dFolder + "_f_"+ str(BiasV) + "/frames/scan_"+ dFolder + "_f_" + str(BiasV) +"_00000001.raw"
+      foreImageData = open(forePath,"rb")
       foreStack = np.zeros((8,512,512),dtype = np.double)
-      numImagesFore = int(os.path.getsize("/mnt/raid/keckpad/set-" + pFolder +"/run-scan_" + dFolder + "_"+ str(BiasV) + "/frames/scan_"+ dFolder + "_" + str(BiasV) +"_00000001.raw")/(1024+512*512*2))
+      numImagesFore = int(os.path.getsize(forePath)/(1024+512*512*2))
 
       #Calc cap backs
-      for fIdex in range(numImages):
+      for fIdex in range(numImagesFore):
          payloadFore = BKL.keckFrame(foreImageData)
          foreStack[(payloadFore[3]-1)%8,:,:] += np.resize(payloadFore[4],[512,512])
 
-      avgFore = foreStack/(numImages/8.0)
+      avgFore = foreStack/(numImagesFore/8.0)
 
       #not background subtracting image
       fmb = avgFore# - avgBack
