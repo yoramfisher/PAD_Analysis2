@@ -7,14 +7,31 @@ import CreateSim
 import math
 from scipy.optimize import curve_fit
 
-
+fit_invoke = 0;
 def twoGauss(xdata, a, b, c, d, e, f, g):
-    result_y = np.arange(xdata.size());
-    for x_idx in range(xdata.size()):
+    global fit_invoke;
+    fit_invoke += 1;
+    print(fit_invoke, a, b, c, d, e, f, g);
+    result_y = np.arange(xdata.size).astype(np.double);
+    for x_idx in range(xdata.size):
         x = xdata[x_idx];
         result_y[x_idx] = a * math.exp(-0.5*((x-b)/c)**2) + d * math.exp(-0.5*((x-e)/f)**2) + g;
-
+    #print(xdata, result_y)
     return result_y;
+
+def threeGauss(xdata, a, b, c, d, e, f, g, j, k, l):
+    global fit_invoke;
+    fit_invoke += 1;
+    print(fit_invoke, a, b, c, d, e, f, g, j, k, l);
+    result_y = np.arange(xdata.size).astype(np.double);
+    for x_idx in range(xdata.size):
+        x = xdata[x_idx];
+        result_y[x_idx] = a * math.exp(-0.5*((x-b)/c)**2) + \
+        d * math.exp(-0.5*((x-e)/f)**2) + \
+            g * math.exp(-0.5*((x-j)/k)**2) + l;
+    #print(xdata, result_y)
+    return result_y;
+
 
 def clip_hist(hist_data, clip_thresh):
     hist_data.sort();
@@ -82,7 +99,7 @@ for num in range(numFiles):
 # Now get some valid pixels
 valid_pixels = [];
 for cap_idx in range(NUM_CAPS):
-    valid_pixels.append(np.array(pixelExtractor.valid_values[cap_idx]))
+    valid_pixels.append(np.array(pixelExtractor.valid_values[cap_idx]).astype(np.double))
 
 # valid_pixelsall= np.array(allpixels).reshape([1,-1])
 clipPos = 250
@@ -97,17 +114,31 @@ for cap_idx in range(NUM_CAPS):
 # Now histogram the arrays
 hist_pixels = [];
 binRan = np.arange(-50,351);    # The bins for the histogram
+binRan = np.arange(-50,100);
+
 for cap_idx in range(NUM_CAPS):
-    hist_pixels.append(np.histogram(clipped_pixels[cap_idx], bins=binRan));
+    hist_pixels.append((np.histogram(clipped_pixels[cap_idx], bins=binRan))[0]);
 
 # Now do the curve fitting
 fit_pixels = [];
 for cap_idx in range(NUM_CAPS):
-    guess_val = [ 1, 0, 1, 0.9, 30, 1, 0];
-    fit_vals = curve_fit(twoGauss, binRan[:-1], hist_pixels[cap_idx], guess_val);
-    fit_pixels.append(twoGauss(binRan[:-1], *fit_vals[0]));
-                       
-        
+    guess_val = [ 1, 0, 10, 0.9, 30, 10, 0];
+    guess_val[0] = np.max(hist_pixels);
+    guess_val[3] = guess_val[0]*0.9;
+    guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
+    guess_val[0] = np.max(hist_pixels)
+    guess_val[3] = guess_val[0]*0.9
+    guess_val[6] = guess_val[0]*0.2;
+    #print(binRan[:-1])
+    #print(hist_pixels[cap_idx])
+
+    #fit_vals = curve_fit(twoGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
+    fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
+    #fit_pixels.append(twoGauss(binRan[:-1], *fit_vals[0]));
+    fit_pixels.append(threeGauss(binRan[:-1], *fit_vals[0]));
+    print("Cap {} Fit:".format(cap_idx))                   
+    print(fit_vals[0])
+
 # Do the plotting
 fig,axs = plt.subplots(NUM_CAPS,1)
 # Special case if only one cap
