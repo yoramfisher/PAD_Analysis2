@@ -10,8 +10,8 @@ class EventPixel:
         self.y = -1;
         self.cap = -1;
         self.value = -1;        # Initialize to invalid values
-Low = 14
-Hi = 25
+Low = 26
+Hi = 50
 # Set thresholds
 low_thresh = [Low, Low, Low, Low, Low, Low, Low, Low]; # Threshold for neighbors being low
 high_thresh = [Hi, Hi, Hi, Hi, Hi, Hi, Hi, Hi]; # Threshold for pixel under test being high
@@ -21,18 +21,18 @@ backStack = np.zeros((8,512,512), dtype=np.double);
 foreStack = np.zeros((8,512,512), dtype=np.double);
 
 # Load background
-backImageFilename = '/mnt/raid/keckpad/set-phHist/run-3ms_backs/frames/3ms_backs_00000001' +'.raw';
+backImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_b/frames/30KV_1.5mA_40ms_b_00000001' +'.raw';
 numBackImages = int(os.path.getsize(backImageFilename)/(1024+512*512*2));
 backImageFile = open(backImageFilename, "rb");
 
-for fIdx in range(numBackImages):
+for fIdx in range(numBackImages): 
     payload = BKL.keckFrame(backImageFile);
     backStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512]);
 backStack = backStack/(numBackImages/8); # Average the background
 backImageFile.close();
 
 # Load the foreground images
-foreImageFilename = '/mnt/raid/keckpad/set-phHist/run-30kv_3ms_pinholes/frames/30kv_3ms_pinholes_00000001.raw';
+foreImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_f/frames/30KV_1.5mA_40ms_f_00000001.raw';
 numForeImages = int(os.path.getsize(foreImageFilename)/(1024+512*512*2));
 foreImageFile = open(foreImageFilename, "rb");
 

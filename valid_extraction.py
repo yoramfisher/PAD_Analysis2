@@ -32,6 +32,19 @@ def threeGauss(xdata, a, b, c, d, e, f, g, j, k, l):
     #print(xdata, result_y)
     return result_y;
 
+def fourGauss(xdata, a, b, c, d, e, f, g, j, k, l, m, n, o):
+    global fit_invoke;
+    fit_invoke += 1;
+    #print(fit_invoke, a, b, c, d, e, f, g, j, k, l);
+    result_y = np.arange(xdata.size).astype(np.double);
+    for x_idx in range(xdata.size):
+        x = xdata[x_idx];
+        result_y[x_idx] = a * math.exp(-0.5*((x-b)/c)**2) + \
+        d * math.exp(-0.5*((x-e)/f)**2) + \
+            g * math.exp(-0.5*((x-j)/k)**2) + \
+                l * math.exp(-0.5*((x-m)/n)**2) + o;
+    #print(xdata, result_y)
+    return result_y;
 
 def clip_hist(hist_data, clip_thresh):
     hist_data.sort();
@@ -45,7 +58,7 @@ NUM_CAPS = 8
 
 # Initialize the filenames
 #bgFilename = '/mnt/raid/keckpad/set-phHist/run-4ms_back/frames/4ms_back_00000001' +'.raw'
-bgFilename = '/mnt/raid/keckpad/set-phHist/run-3ms_backs/frames/3ms_backs_00000001' +'.raw';
+bgFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_b/frames/30KV_1.5mA_40ms_b_00000001' +'.raw';
 #fgFilename = '/mnt/raid/keckpad/set-issbufPIX_40KV/run-scan_issbufPIX_f_1200/frames/scan_issbufPIX_f_1200_00000001.raw';
 maskFilename = 'single_pix.csv';
 
@@ -77,7 +90,7 @@ numFiles = 8
 for num in range(numFiles):
     images = num * 1000 + 1
     #fgFilename = '/mnt/raid/keckpad/set-phHist/run-30kv_3ms_pinholes2/frames/30kv_3ms_pinholes2_' + '{:08d}'.format(images) + '.raw'
-    fgFilename = '/mnt/raid/keckpad/set-phHist/run-30kv_3ms_pinholes/frames/30kv_3ms_pinholes_' + '{:08d}'.format(images) + '.raw'
+    fgFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_f/frames/30KV_1.5mA_40ms_f_' + '{:08d}'.format(images) + '.raw'
 # Iterate over all foreground images
     fgImageFile = open(fgFilename, "rb");
     numFgImages = int(os.path.getsize(fgFilename)/(1024+512*512*2));
@@ -102,7 +115,7 @@ for cap_idx in range(NUM_CAPS):
     valid_pixels.append(np.array(pixelExtractor.valid_values[cap_idx]).astype(np.double))
 
 # valid_pixelsall= np.array(allpixels).reshape([1,-1])
-clipPos = 250
+clipPos = 300
 clipNeg = -50
 clip_thresh = 0.000;
 
@@ -114,40 +127,54 @@ for cap_idx in range(NUM_CAPS):
 # Now histogram the arrays
 hist_pixels = [];
 binRan = np.arange(-50,351);    # The bins for the histogram
-binRan = np.arange(-50,100);
+binRan = np.arange(-50,300);
 
 for cap_idx in range(NUM_CAPS):
     hist_pixels.append((np.histogram(clipped_pixels[cap_idx], bins=binRan))[0]);
 
 # Now do the curve fitting
-fit_pixels = [];
-for cap_idx in range(NUM_CAPS):
-    # Two Gauss
-    guess_val = [ 1, 0, 10, 0.9, 30, 10, 0];
-    guess_val[0] = np.max(hist_pixels);
-    guess_val[3] = guess_val[0]*0.9;
+# fit_pixels = [];
+# for cap_idx in range(NUM_CAPS):
+#     # Two Gauss
+#     guess_val = [ 1, 0, 10, 0.9, 30, 10, 0];
+#     guess_val[0] = np.max(hist_pixels);
+#     guess_val[3] = guess_val[0]*0.9;
     
     # Three Gauss
-    #guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
-    #guess_val[0] = np.max(hist_pixels)
-    #guess_val[3] = guess_val[0]*0.9
-    #guess_val[6] = guess_val[0]*0.2;
+    # guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
+    # guess_val[0] = np.max(hist_pixels)
+    # guess_val[3] = guess_val[0]*0.9
+    # guess_val[6] = guess_val[0]*0.2;
+
+    # Four Gauss
+    # guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0.2, 90, 10, 0]
+    # guess_val[0] = np.max(hist_pixels)
+    # guess_val[3] = guess_val[0]*0.9
+    # guess_val[6] = guess_val[0]*0.2
+    # guess_val[9] = guess_val[0]*0.1;
     
     # Two Gauss
-    fit_vals = curve_fit(twoGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
-    fit_pixels.append(twoGauss(binRan[:-1], *fit_vals[0]));
+    # fit_vals = curve_fit(twoGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
+    # fit_pixels.append(twoGauss(binRan[:-1], *fit_vals[0]));
 
     # Three Gauss
-    #fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
-    #fit_pixels.append(threeGauss(binRan[:-1], *fit_vals[0]));
+    # fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
+    # fit_pixels.append(threeGauss(binRan[:-1], *fit_vals[0]));
 
-    print("Cap {} Fit Centers:".format(cap_idx))                   
+    # Four Gauss
+    # fit_vals = curve_fit(fourGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
+    # fit_pixels.append(fourGauss(binRan[:-1], *fit_vals[0]));
+
+ #   print("Cap {} Fit Centers:".format(cap_idx))                   
     #print(fit_vals[0])
     # Two Gauss
-    print("{}, {}".format(fit_vals[0][1], fit_vals[0][4]))
+   # print("{}, {}".format(fit_vals[0][1], fit_vals[0][4]))
 
     # Three Gauss
-    print("{}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7]))
+    # print("{}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7]))
+
+    # Four Gauss
+    # print("{}, {}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7], fit_vals[0][10]))
 
 # Do the plotting
 fig,axs = plt.subplots(NUM_CAPS,1)
@@ -157,7 +184,7 @@ if NUM_CAPS == 1:
 
 for cap_idx in range(NUM_CAPS):
     axs[cap_idx].hist(clipped_pixels[cap_idx], bins=binRan);
-    axs[cap_idx].plot(binRan[:-1], fit_pixels[cap_idx], 'r--');
+    #axs[cap_idx].plot(binRan[:-1], fit_pixels[cap_idx], 'r--');
 
 
 plt.show()
