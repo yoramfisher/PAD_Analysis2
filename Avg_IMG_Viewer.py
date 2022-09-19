@@ -47,7 +47,7 @@ clipData = np.clip(plotData, 0, 1250)
 # plt.show()
 
 fig,ax = plt.subplots(1)
-
+#needed to add more stuff
 image = ax.imshow(clipData, cmap = "viridis")
 cbar = fig.colorbar(image, aspect=10)
 ax.set_title('DCS Keck')

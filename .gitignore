@@ -1,3 +1,5 @@
 
 *.raw
 *.pyc
+single_pix.csv
+pixels.pickle
