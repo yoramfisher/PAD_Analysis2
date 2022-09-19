@@ -7,66 +7,76 @@ import os
 import matplotlib.pyplot as plt
 import sys
 
-
+foreFile = "/mnt/raid/keckpad/set-geocal_dcsKeck/run-geocal_f/frames/geocal_f_00000001.raw"
+backFile = "/mnt/raid/keckpad/set-geocal_dcsKeck/run-geocal_b/frames/geocal_b_00000001.raw"
 cwd = os.getcwd()
-imageData = open(cwd +"\\KeckData\\fore.raw","rb")
-numImages = int(os.path.getsize(cwd +"\\KeckData\\fore.raw")/(1024+512*512*2))
-backStack = np.zeros((numImages,8,512,512),dtype=np.double)
-
+foreImage = open(foreFile,"rb")
+backImage = open(backFile,"rb")
+numImagesF = int(os.path.getsize(foreFile)/(1024+512*512*2))
+numImagesB = int(os.path.getsize(backFile)/(1024+512*512*2))
+foreStack = np.zeros((8,512,512),dtype=np.double)
+backStack = np.zeros((8,512,512),dtype=np.double)
 
 #read all the image files
-for fIdex in range(numImages):
-   payload = BKL.keckFrame(imageData)
-   backStack[(payload[5]-1),(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
+for fIdex in range(numImagesB):
+   payloadB = BKL.keckFrame(backImage)
+   backStack[(payloadB[3]-1)%8,:,:] += np.resize(payloadB[4],[512,512])
 
-# avgBack = backStack/(numImages/8.0)
-capPlot = ()
-capPlot2 = ()
-listBias = ()
-#values set for ISSB Change range for vRef scan
-# for junk in range(8):
-#    for val in range (10):      # number of daughter folders
-#       BiasV = (val + 1) *100 + 900       # range of voltages you used 
-#       listBias = np.append(listBias, BiasV)
+avgBack = backStack/(numImagesB/8.0)
 
-#       foreImageData = open("/mnt/raid/keckpad/set-" + pFolder +"/run-scan_" + dFolder + "_"+ str(BiasV) + "/frames/scan_"+ dFolder + "_" + str(BiasV) +"_00000001.raw","rb")
-#       foreStack = np.zeros((80,8,512,512),dtype = np.double)
-#       numImagesFore = int(os.path.getsize("/mnt/raid/keckpad/set-" + pFolder +"/run-scan_" + dFolder + "_"+ str(BiasV) + "/frames/scan_"+ dFolder + "_" + str(BiasV) +"_00000001.raw")/(1024+512*512*2))
+for fIdex in range(numImagesF):
+   payload = BKL.keckFrame(foreImage)
+   foreStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
 
-#       #Calc cap backs
-#       for fIdex in range(numImages):
-#          payloadFore = Big_keck_load.keckFrame(foreImageData)
-#          foreStack[((payloadFore[5]-1),payloadFore[3]-1)%8,:,:] += np.resize(payloadFore[4],[512,512])
-
-#       # avgFore = foreStack/(numImages/8.0)
-
-#       #not background subtracting image
-#       # fmb = foreStack
-
-   
-#       Cap = junk
-#       capAvg = np.mean(fmb[Cap,,291:364,173:240])      # second module down on the right, L ASIC 
-#       capAvg2 = np.mean(fmb[Cap,411:484,158:225])      # second module down on the right, R ASIC 
-#       capPlot = np.append(capPlot, capAvg)
-#       capPlot2 = np.append(capPlot2, capAvg2)
-
-fNum = 65
-plotData = backStack[:,:,:,:]
-#plotData = np.average(plotData, axis=1)
+avgFore = foreStack/(numImagesB/8.0)
+plotData = avgFore-avgBack
+plotData1 = plotData[0,:,:]
 plotData = np.average(plotData, axis=0)
-# plotData = plotData[4,:,:]
+clipData = np.clip(plotData, 0, 1250)
 # plt.imshow(plotData)
-# plt.show()  
-# plt.close()
+# # fig,axs = plt.subplots(2,4)
+# # axs[0,0].imshow(plotData[0,:,:])
+# # axs[0,1].imshow(plotData[1,:,:])
+# # axs[0,2].imshow(plotData[2,:,:])
+# # axs[0,3].imshow(plotData[3,:,:])
+# # axs[1,0].imshow(plotData[4,:,:])
+# # axs[1,1].imshow(plotData[5,:,:])
+# # axs[1,2].imshow(plotData[6,:,:])
+# # axs[1,3].imshow(plotData[7,:,:])
+# #plt.imshow(fmb[3,:,:])
+# plt.show()
 
-fig,axs = plt.subplots(2,4)
-axs[0,0].imshow(plotData[0,:,:])
-axs[0,1].imshow(plotData[1,:,:])
-axs[0,2].imshow(plotData[2,:,:])
-axs[0,3].imshow(plotData[3,:,:])
-axs[1,0].imshow(plotData[4,:,:])
-axs[1,1].imshow(plotData[5,:,:])
-axs[1,2].imshow(plotData[6,:,:])
-axs[1,3].imshow(plotData[7,:,:])
-#plt.imshow(fmb[3,:,:])
+fig,ax = plt.subplots(1)
+
+image = ax.imshow(clipData, cmap = "viridis")
+cbar = fig.colorbar(image, aspect=10)
+ax.set_title('DCS Keck')
+ax.set_ylabel("Pixel")
+ax.set_xlabel("Pixel")
+cbar.set_label ("Counts (ADU)")
+fig.savefig(foreFile + "_Avg.png")
 plt.show()
+
+#################
+#3d Projection plot code example
+########################
+# fig = plt.figure()
+ 
+# # syntax for 3-D projection
+# fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+ 
+# # defining all 3 axes
+# z = clipData
+# x = range(512)
+# y = range(512)
+
+# X, Y = np.meshgrid(x, y)
+
+# # plotting
+
+
+# surf = ax.plot_surface(X, Y, z,cmap ='viridis')
+# fig.colorbar(surf, shrink=0.5, aspect=5)
+# ax.set_title('DCSKeck')
+# plt.show()
+#############################
