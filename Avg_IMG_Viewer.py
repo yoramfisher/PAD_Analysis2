@@ -1,5 +1,5 @@
-#Bias_Anal.py created by BWM 8/31/22
-#program to analyze keck data while varying DAC bias voltages
+#Avg_IMG_Viewer.py created by BWM 9/12/22
+#program to create pretty averaged images plot and save them
 
 import numpy as np
 import Big_keck_load as BKL
@@ -31,8 +31,16 @@ for fIdex in range(numImagesF):
 avgFore = foreStack/(numImagesB/8.0)
 plotData = avgFore-avgBack
 plotData1 = plotData[0,:,:]
+
+#average the data across all 8 caps
 plotData = np.average(plotData, axis=0)
+#clip data below to get rid of hot pixels
 clipData = np.clip(plotData, 0, 1250)
+
+########################
+#code to plot all 8 caps individually
+########################
+
 # plt.imshow(plotData)
 # # fig,axs = plt.subplots(2,4)
 # # axs[0,0].imshow(plotData[0,:,:])
@@ -46,8 +54,11 @@ clipData = np.clip(plotData, 0, 1250)
 # #plt.imshow(fmb[3,:,:])
 # plt.show()
 
+###################
+#Code to plot and save one image with labels and such
+###################
+
 fig,ax = plt.subplots(1)
-#needed to add more stuff
 image = ax.imshow(clipData, cmap = "viridis")
 cbar = fig.colorbar(image, aspect=10)
 ax.set_title('DCS Keck')
