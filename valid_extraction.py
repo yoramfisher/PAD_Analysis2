@@ -58,7 +58,7 @@ NUM_CAPS = 8
 
 # Initialize the filenames
 #bgFilename = '/mnt/raid/keckpad/set-phHist/run-4ms_back/frames/4ms_back_00000001' +'.raw'
-bgFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_b/frames/30KV_1.5mA_40ms_b_00000001' +'.raw';
+bgFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1mA_40ms_b/frames/30KV_1mA_40ms_b_00000001' +'.raw';
 #fgFilename = '/mnt/raid/keckpad/set-issbufPIX_40KV/run-scan_issbufPIX_f_1200/frames/scan_issbufPIX_f_1200_00000001.raw';
 maskFilename = 'single_pix.csv';
 
@@ -90,7 +90,7 @@ numFiles = 8
 for num in range(numFiles):
     images = num * 1000 + 1
     #fgFilename = '/mnt/raid/keckpad/set-phHist/run-30kv_3ms_pinholes2/frames/30kv_3ms_pinholes2_' + '{:08d}'.format(images) + '.raw'
-    fgFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_f/frames/30KV_1.5mA_40ms_f_' + '{:08d}'.format(images) + '.raw'
+    fgFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1mA_40ms_f/frames/30KV_1mA_40ms_f_' + '{:08d}'.format(images) + '.raw'
 # Iterate over all foreground images
     fgImageFile = open(fgFilename, "rb");
     numFgImages = int(os.path.getsize(fgFilename)/(1024+512*512*2));
@@ -133,18 +133,18 @@ for cap_idx in range(NUM_CAPS):
     hist_pixels.append((np.histogram(clipped_pixels[cap_idx], bins=binRan))[0]);
 
 # Now do the curve fitting
-# fit_pixels = [];
-# for cap_idx in range(NUM_CAPS):
+fit_pixels = [];
+for cap_idx in range(NUM_CAPS):
 #     # Two Gauss
 #     guess_val = [ 1, 0, 10, 0.9, 30, 10, 0];
 #     guess_val[0] = np.max(hist_pixels);
 #     guess_val[3] = guess_val[0]*0.9;
     
     # Three Gauss
-    # guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
-    # guess_val[0] = np.max(hist_pixels)
-    # guess_val[3] = guess_val[0]*0.9
-    # guess_val[6] = guess_val[0]*0.2;
+    guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
+    guess_val[0] = np.max(hist_pixels)
+    guess_val[3] = guess_val[0]*0.9
+    guess_val[6] = guess_val[0]*0.2;
 
     # Four Gauss
     # guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0.2, 90, 10, 0]
@@ -158,8 +158,8 @@ for cap_idx in range(NUM_CAPS):
     # fit_pixels.append(twoGauss(binRan[:-1], *fit_vals[0]));
 
     # Three Gauss
-    # fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
-    # fit_pixels.append(threeGauss(binRan[:-1], *fit_vals[0]));
+    fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
+    fit_pixels.append(threeGauss(binRan[:-1], *fit_vals[0]));
 
     # Four Gauss
     # fit_vals = curve_fit(fourGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
@@ -171,7 +171,7 @@ for cap_idx in range(NUM_CAPS):
    # print("{}, {}".format(fit_vals[0][1], fit_vals[0][4]))
 
     # Three Gauss
-    # print("{}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7]))
+    print("{}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7]))
 
     # Four Gauss
     # print("{}, {}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7], fit_vals[0][10]))
