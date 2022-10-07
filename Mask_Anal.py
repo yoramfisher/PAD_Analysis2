@@ -21,7 +21,7 @@ backStack = np.zeros((8,512,512), dtype=np.double);
 foreStack = np.zeros((8,512,512), dtype=np.double);
 
 # Load background
-backImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_b/frames/30KV_1.5mA_40ms_b_00000001' +'.raw';
+backImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1mA_40ms_b/frames/30KV_1mA_40ms_b_00000001' +'.raw';
 numBackImages = int(os.path.getsize(backImageFilename)/(1024+512*512*2));
 backImageFile = open(backImageFilename, "rb");
 
@@ -32,7 +32,7 @@ backStack = backStack/(numBackImages/8); # Average the background
 backImageFile.close();
 
 # Load the foreground images
-foreImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_f/frames/30KV_1.5mA_40ms_f_00000001.raw';
+foreImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1mA_40ms_f/frames/30KV_1mA_40ms_f_00000001.raw';
 numForeImages = int(os.path.getsize(foreImageFilename)/(1024+512*512*2));
 foreImageFile = open(foreImageFilename, "rb");
 
