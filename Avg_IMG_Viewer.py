@@ -1,5 +1,5 @@
-#Bias_Anal.py created by BWM 8/31/22
-#program to analyze keck data while varying DAC bias voltages
+#Avg_IMG_Viewer.py created by BWM 9/12/22
+#program to create pretty averaged images plot and save them
 
 import numpy as np
 import Big_keck_load as BKL
@@ -71,6 +71,42 @@ for pic in allplot:
 fig.set_size_inches(20, 10)    
 fig.subplots_adjust(wspace = 0.545)
 fig.savefig(foreFile + "_AvgAll.png")
+plotData1 = plotData[0,:,:]
+
+#average the data across all 8 caps
+plotData = np.average(plotData, axis=0)
+#clip data below to get rid of hot pixels and negative pixels
+clipData = np.clip(plotData, 0, 1250)
+
+########################
+#code to plot all 8 caps individually
+########################
+
+# plt.imshow(plotData)
+# # fig,axs = plt.subplots(2,4)
+# # axs[0,0].imshow(plotData[0,:,:])
+# # axs[0,1].imshow(plotData[1,:,:])
+# # axs[0,2].imshow(plotData[2,:,:])
+# # axs[0,3].imshow(plotData[3,:,:])
+# # axs[1,0].imshow(plotData[4,:,:])
+# # axs[1,1].imshow(plotData[5,:,:])
+# # axs[1,2].imshow(plotData[6,:,:])
+# # axs[1,3].imshow(plotData[7,:,:])
+# #plt.imshow(fmb[3,:,:])
+# plt.show()
+
+###################
+#Code to plot and save one image with labels and such
+###################
+
+fig,ax = plt.subplots(1)
+image = ax.imshow(clipData, cmap = "viridis")
+cbar = fig.colorbar(image, aspect=10)
+ax.set_title('DCS Keck')
+ax.set_ylabel("Pixel")
+ax.set_xlabel("Pixel")
+cbar.set_label ("Counts (ADU)")
+fig.savefig(foreFile + "_Avg.png")
 plt.show()
 
 #################
