@@ -6,8 +6,8 @@ class MaskExtractor:
         self.img_width = 512;
         self.img_height = 512;
         self.num_caps = 8;
-        self.singlePixelMat = np.zeros((self.img_height, self.img_width)).astype(bool);
-        self.broadcastCaps = True; # Whether to spread hits to all caps
+        self.singlePixelMat = np.zeros((1, self.img_height, self.img_width)).astype(bool);
+        self.broadcastCaps = False; # Whether to spread hits to all caps
         self.valid_values = [];
         self.valid_values.append([]);
         
@@ -29,9 +29,9 @@ class MaskExtractor:
     def extract_frame(self, curr_frame):
         if False and self.broadcastCaps:
             cap_num = 0;  # Only store in cap 0 if we are doing all pixels
-        curr_mask = self.singlePixelMat[:, :]; # Extract the current mask
+        curr_mask = self.singlePixelMat[0, :, :]; # Extract the current mask
         valid_pixels = curr_frame[curr_mask];           # Get pixels where mask is True
         curr_valid = self.valid_values; # Presently a NOP
-        self.valid_values.extend(valid_pixels.reshape((1,-1)).tolist()[0]);
+        self.valid_values[0].extend(valid_pixels.reshape((1,-1)).tolist()[0]);
         return;
 

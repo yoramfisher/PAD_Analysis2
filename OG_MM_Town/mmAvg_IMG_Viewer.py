@@ -13,28 +13,26 @@ backFile = "/mnt/raid/keckpad/set-geocal_dcsKeck/run-geocal_b/frames/geocal_b_00
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
-numImagesF = int(os.path.getsize(foreFile)/(1048+512*512*4))
-numImagesB = int(os.path.getsize(backFile)/(1048+512*512*4))
+numImagesF = int(os.path.getsize(foreFile)/(2048+512*512*4))
+numImagesB = int(os.path.getsize(backFile)/(2048+512*512*4))
 foreStack = np.zeros((512,512),dtype=np.double)
 backStack = np.zeros((512,512),dtype=np.double)
 
 #read all the image files
 for fIdex in range(numImagesB):
    payloadB = BKL.mmFrame(backImage)
-   backStack[:,:] += np.resize(payloadB,[512,512])
+   backStack += np.resize(payloadB,[512,512])
 
 avgBack = backStack/(numImagesB)
 
 for fIdex in range(numImagesF):
    payload = BKL.mmFrame(foreImage)
-   foreStack[:,:] += np.resize(payload,[512,512])
+   foreStack += np.resize(payload,[512,512])
 
-avgFore = foreStack/(numImagesB/8.0)
+avgFore = foreStack/(numImagesF)
 plotData = avgFore-avgBack
-plotData1 = plotData[0,:,:]
+plotData1 = plotData[:,:]
 
-#average the data across all 8 caps
-plotData = np.average(plotData, axis=0)
 #clip data below to get rid of hot pixels and negative pixels
 clipData = np.clip(plotData, 0, 1250)
 

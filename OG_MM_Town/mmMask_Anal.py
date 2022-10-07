@@ -1,8 +1,8 @@
 import numpy as np
-import Big_keck_load as BKL
+import Big_MM_load as BKL
 import os
 import pickle
-import CreateSim
+
 
 class EventPixel:
     def __init__(self):
@@ -10,19 +10,21 @@ class EventPixel:
         self.y = -1;
         self.cap = -1;
         self.value = -1;        # Initialize to invalid values
-Low = 26
-Hi = 50
+Low = 13
+Hi = 26
 # Set thresholds
-low_thresh = [Low, Low, Low, Low, Low, Low, Low, Low]; # Threshold for neighbors being low
-high_thresh = [Hi, Hi, Hi, Hi, Hi, Hi, Hi, Hi]; # Threshold for pixel under test being high
+# low_thresh = [Low, Low, Low, Low, Low, Low, Low, Low]; # Threshold for neighbors being low
+low_thresh = Low 
+# high_thresh = [Hi, Hi, Hi, Hi, Hi, Hi, Hi, Hi]; # Threshold for pixel under test being high
+high_thresh = Hi
 
 # Allocate arrays
 backStack = np.zeros((512,512), dtype=np.double);
 foreStack = np.zeros((512,512), dtype=np.double);
 
 # Load background
-backImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_b/frames/30KV_1.5mA_40ms_b_00000001' +'.raw';
-numBackImages = int(os.path.getsize(backImageFilename)/(1048+512*512*4));
+backImageFilename = '/mnt/raid/set-pinhole/run-ph_0C_30KV_5ms_b2/mm-pad-512x512-2022-10-07-16-18-16-0002' +'.raw';
+numBackImages = int(os.path.getsize(backImageFilename)/(2048+512*512*4));
 backImageFile = open(backImageFilename, "rb");
 
 for fIdx in range(numBackImages): 
@@ -32,8 +34,8 @@ backStack = backStack/(numBackImages); # Average the background
 backImageFile.close();
 
 # Load the foreground images
-foreImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_f/frames/30KV_1.5mA_40ms_f_00000001.raw';
-numForeImages = int(os.path.getsize(foreImageFilename)/(1024+512*512*4));
+foreImageFilename = '/mnt/raid/set-pinhole/run-ph_0C_30KV_5ms_f2/mm-pad-512x512-2022-10-07-16-19-33-0001.raw';
+numForeImages = int(os.path.getsize(foreImageFilename)/(2048+512*512*4));
 foreImageFile = open(foreImageFilename, "rb");
 
 for fIdx in range(numForeImages):

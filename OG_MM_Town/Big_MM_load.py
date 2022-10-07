@@ -10,7 +10,7 @@ import struct
 # cwd = os.getcwd()
 # imageData = open(cwd +"\\PAD_Anal\\mm_sample.raw","rb")
 
-def mmFrame(dataFile):
+def keckFrame(dataFile):
 
     # will need for new format Commented out for previous 
     # headerBites = dataFile.read(16)
@@ -29,10 +29,12 @@ def mmFrame(dataFile):
     # dataFile.read(256-(16+16+16+41)) #read remainder of header bites
 
     dt = np.dtype('uint32')
-    data = np.fromfile(dataFile, count = (512*512*32), dtype = dt)
+    data = np.fromfile(dataFile, count = (512*512), dtype = dt)
     dataFile.read(2048) #read footer bites 
     return data
 
+def mmFrame(dataFile):
+    return keckFrame(dataFile)
 
 # Frame1 = mmFrame(imageData)
 
