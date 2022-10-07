@@ -17,29 +17,29 @@ low_thresh = [Low, Low, Low, Low, Low, Low, Low, Low]; # Threshold for neighbors
 high_thresh = [Hi, Hi, Hi, Hi, Hi, Hi, Hi, Hi]; # Threshold for pixel under test being high
 
 # Allocate arrays
-backStack = np.zeros((8,512,512), dtype=np.double);
-foreStack = np.zeros((8,512,512), dtype=np.double);
+backStack = np.zeros((512,512), dtype=np.double);
+foreStack = np.zeros((512,512), dtype=np.double);
 
 # Load background
 backImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_b/frames/30KV_1.5mA_40ms_b_00000001' +'.raw';
-numBackImages = int(os.path.getsize(backImageFilename)/(1024+512*512*2));
+numBackImages = int(os.path.getsize(backImageFilename)/(1048+512*512*4));
 backImageFile = open(backImageFilename, "rb");
 
 for fIdx in range(numBackImages): 
     payload = BKL.keckFrame(backImageFile);
-    backStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512]);
-backStack = backStack/(numBackImages/8); # Average the background
+    backStack[:,:] += np.resize(payload,[512,512]);
+backStack = backStack/(numBackImages); # Average the background
 backImageFile.close();
 
 # Load the foreground images
 foreImageFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_f/frames/30KV_1.5mA_40ms_f_00000001.raw';
-numForeImages = int(os.path.getsize(foreImageFilename)/(1024+512*512*2));
+numForeImages = int(os.path.getsize(foreImageFilename)/(1024+512*512*4));
 foreImageFile = open(foreImageFilename, "rb");
 
 for fIdx in range(numForeImages):
     payload = BKL.keckFrame(foreImageFile);
-    foreStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512]);
-foreStack = foreStack/(numForeImages/8); # Average the background
+    foreStack[:,:] += np.resize(payload,[512,512]);
+foreStack = foreStack/(numForeImages); # Average the background
 foreImageFile.close();
 
 # Compute the background subtracted image
@@ -47,14 +47,11 @@ fmbImage = foreStack - backStack;
 
 # Save the computed images
 # Uncomment below if wish to save images
-foreStack.tofile('fore_avg.raw');
-backStack.tofile('back_avg.raw');
-fmbImage.tofile('fmb.raw');
+# foreStack.tofile('fore_avg.raw');
+# backStack.tofile('back_avg.raw');
+# fmbImage.tofile('fmb.raw');
 
-if False:
-    simData = CreateSim.CreateSim()
-    for x in range(8):
-        fmbImage[x,:,:] = simData;
+
 
 singlePixelList = [];
 noPixelList = [];
@@ -62,34 +59,33 @@ total_pixels = 0;
 cold_neighborhoods = 0;
     
 #Now iterate over the inner pixels to find single events
-for cap_idx in range(8):
-    curr_frame = fmbImage[cap_idx,:,:]; # Get just the current frame
-    for row_idx in range(2,510):    # Ignore outer two pixels
-        for col_idx in range(2,510): # Ibid
-            total_pixels += 1;       # Increment pixel count
-            test_mat = curr_frame[(row_idx-1):(row_idx+1+1),(col_idx-1):(col_idx+1+1)]; # Extract the 3x3 neighborhood
-            # Compute the low threshold
-            cold_test = (test_mat<low_thresh[cap_idx]).astype(int); # See if neighborhood below limi
-            cold_test[1,1] = 0;              # Set inner to zero for sum
-            cold_sum = np.sum(cold_test);
-            #if (cold_sum > 0):
-            #    print(cold_test);
-            cold_neighbor = False;
-            if cold_sum == 8:   # All pixels below threshold
-                cold_neighbor = True;
-                cold_neighborhoods += 1;
-                test_pixel = EventPixel();
-                test_pixel.x = col_idx;
-                test_pixel.y = row_idx;
-                test_pixel.cap = cap_idx;
-                test_pixel.value = test_mat[1,1]; # Set the pixel parameters
-                
-                # Determine list to append to
-                if test_pixel.value >= high_thresh[cap_idx]: # Pixel hot
-                    singlePixelList.append(test_pixel);
-                # uncomment below if you want to save no pixel list    
-                # else:           # Pixel cold
-                #     noPixelList.append(test_pixel);
+
+curr_frame = fmbImage[:,:]; # Get just the current frame
+for row_idx in range(2,510):    # Ignore outer two pixels
+    for col_idx in range(2,510): # Ibid
+        total_pixels += 1;       # Increment pixel count
+        test_mat = curr_frame[(row_idx-1):(row_idx+1+1),(col_idx-1):(col_idx+1+1)]; # Extract the 3x3 neighborhood
+        # Compute the low threshold
+        cold_test = (test_mat<low_thresh).astype(int); # See if neighborhood below limi
+        cold_test[1,1] = 0;              # Set inner to zero for sum
+        cold_sum = np.sum(cold_test);
+        #if (cold_sum > 0):
+        #    print(cold_test);
+        cold_neighbor = False;
+        if cold_sum == 8:   # All pixels below threshold
+            cold_neighbor = True;
+            cold_neighborhoods += 1;
+            test_pixel = EventPixel();
+            test_pixel.x = col_idx;
+            test_pixel.y = row_idx;
+            test_pixel.value = test_mat[1,1]; # Set the pixel parameters
+            
+            # Determine list to append to
+            if test_pixel.value >= high_thresh: # Pixel hot
+                singlePixelList.append(test_pixel);
+            # uncomment below if you want to save no pixel list    
+            # else:           # Pixel cold
+            #     noPixelList.append(test_pixel);
 
 print("Tested {} pixels.".format(total_pixels));
 print("Cold neighborhoods: {}".format(cold_neighborhoods));

@@ -1,9 +1,12 @@
-import MaskExtract
+#Modded by BWM for OG MM Pad 
+#10/07/22
+
+
+import mmMaskExtract
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import Big_keck_load as BKL
-import CreateSim
+import Big_MM_load as BKL
 import math
 from scipy.optimize import curve_fit
 
@@ -54,7 +57,7 @@ def clip_hist(hist_data, clip_thresh):
 
 
 # Specify the number of caps
-NUM_CAPS = 8
+NUM_CAPS = 1
 
 # Initialize the filenames
 #bgFilename = '/mnt/raid/keckpad/set-phHist/run-4ms_back/frames/4ms_back_00000001' +'.raw'
@@ -66,22 +69,22 @@ pFolder = "vref_50kv"
 dFolder = "vref"
 backImageData = open(bgFilename,"rb")
 
-backStack = np.zeros((NUM_CAPS,512,512),dtype=np.double)
-numImages = int(os.path.getsize(bgFilename)/(1024+512*512*2))
+backStack = np.zeros((512,512),dtype=np.double)
+numImages = int(os.path.getsize(bgFilename)/(1048+512*512*4))
 
 #Calc cap backs
 for fIdex in range(numImages):
-   payload = BKL.keckFrame(backImageData)
-   backStack[(payload[3]-1)%NUM_CAPS,:,:] += np.resize(payload[4],[512,512])
-backStack = backStack/ (numImages/8)
+   payload = BKL.mmFrame(backImageData)
+   backStack[:,:] += np.resize(payload,[512,512])
+backStack = backStack/ (numImages)
 
 
 # Initialize the extractor
-pixelExtractor = MaskExtract.MaskExtractor();
+pixelExtractor = mmMaskExtract.MaskExtractor();
 pixelExtractor.load_mask(maskFilename);
 #uncomment below for single pixel analysis 
 #pixelExtractor.singlePixelMat = pixelExtractor.singlePixelMat[:,128:(128+128+1),256:(256+128+1)] # [caps, y1:y2, x1:x2]
-pixelExtractor.singlePixelMat = pixelExtractor.singlePixelMat[:,:,:] # [caps, y1:y2, x1:x2]
+pixelExtractor.singlePixelMat = pixelExtractor.singlePixelMat[:,:] # [caps, y1:y2, x1:x2]
 # Load background image # Need to re-load and average instead.
 #bgImage = np.fromfile(bgFilename, dtype=np.double).reshape((-1,512,512));
 
@@ -93,26 +96,25 @@ for num in range(numFiles):
     fgFilename = '/mnt/raid/keckpad/set-phHist_dcsKeck/run-30KV_1.5mA_40ms_f/frames/30KV_1.5mA_40ms_f_' + '{:08d}'.format(images) + '.raw'
 # Iterate over all foreground images
     fgImageFile = open(fgFilename, "rb");
-    numFgImages = int(os.path.getsize(fgFilename)/(1024+512*512*2));
+    numFgImages = int(os.path.getsize(fgFilename)/(1048+512*512*4));
 
 
     for fIdx in range(numFgImages):
-        payload = BKL.keckFrame(fgImageFile);
-        curr_frame = payload[4].reshape([512,512]);
-        fmbImg = curr_frame - backStack[(payload[3]-1)%NUM_CAPS,:,:];
+        payload = BKL.mmFrame(fgImageFile);
+        curr_frame = payload.reshape([512,512]);
+        fmbImg = curr_frame - backStack
         #fmbImg = fmbImg[128:(128+128+1),256:(256+128+1)] #uncomment for looking at individual pixels
         #-=-= XXX Comment this out for production
         #fmbImg = CreateSim.CreateSim();
 
-        pixelExtractor.extract_frame(fmbImg, (payload[3]-1)%NUM_CAPS); # FIXME Assumes that all caps are being used in the foreground image
+        pixelExtractor.extract_frame(fmbImg); # FIXME Assumes that all caps are being used in the foreground image
         
     # Close the file
     fgImageFile.close();
 
 # Now get some valid pixels
 valid_pixels = [];
-for cap_idx in range(NUM_CAPS):
-    valid_pixels.append(np.array(pixelExtractor.valid_values[cap_idx]).astype(np.double))
+valid_pixels.append(np.array(pixelExtractor.valid_values).astype(np.double))
 
 # valid_pixelsall= np.array(allpixels).reshape([1,-1])
 clipPos = 300
@@ -121,16 +123,14 @@ clip_thresh = 0.000;
 
 # Clip the arrays
 clipped_pixels = [];
-for cap_idx in range(NUM_CAPS):
-    clipped_pixels.append(clip_hist(valid_pixels[cap_idx], clip_thresh));
+clipped_pixels.append(clip_hist(valid_pixels, clip_thresh));
 
 # Now histogram the arrays
 hist_pixels = [];
 binRan = np.arange(-50,351);    # The bins for the histogram
 binRan = np.arange(-50,300);
 
-for cap_idx in range(NUM_CAPS):
-    hist_pixels.append((np.histogram(clipped_pixels[cap_idx], bins=binRan))[0]);
+hist_pixels.append((np.histogram(clipped_pixels, bins=binRan))[0]);
 
 # Now do the curve fitting
 # fit_pixels = [];
@@ -177,13 +177,11 @@ for cap_idx in range(NUM_CAPS):
     # print("{}, {}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7], fit_vals[0][10]))
 
 # Do the plotting
-fig,axs = plt.subplots(NUM_CAPS,1)
+fig,axs = plt.subplots(1)
 # Special case if only one cap
-if NUM_CAPS == 1:
-    axs = [axs]                 # Turn into a list so it can be subscripted
+                # Turn into a list so it can be subscripted
 
-for cap_idx in range(NUM_CAPS):
-    axs[cap_idx].hist(clipped_pixels[cap_idx], bins=binRan);
+axs.hist(clipped_pixels, bins=binRan);
     #axs[cap_idx].plot(binRan[:-1], fit_pixels[cap_idx], 'r--');
 
 
