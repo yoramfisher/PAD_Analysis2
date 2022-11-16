@@ -20,6 +20,8 @@ def file_select(Type):
 backFile = file_select("Background File")
 foreFile = file_select("Foreground File")
 
+foreFile = "/mnt/raid/keckpad/set-junk123/run-1ms_flat_fore/frames/1ms_flat_fore_00000001.raw"
+backFile = "/mnt/raid/keckpad/set-junk123/run-1ms_flat_back/frames/1ms_flat_back_00000001.raw"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
@@ -81,7 +83,7 @@ for pic in allplot:
 #needed to add more stuff
 # image = ax.imshow(clipData, cmap = "viridis")
    cbar = fig.colorbar(image, aspect=10, ax = ax[indexRow,indexCol])
-   ax[indexRow,indexCol].set_title('Keck Cap'+ str(indexVal))
+   ax[indexRow,indexCol].set_title('DCS Keck Cap'+ str(indexVal))
    ax[indexRow,indexCol].set_ylabel("Pixel")
    ax[indexRow,indexCol].set_xlabel("Pixel")
    cbar.set_label ("Counts (ADU)")
