@@ -1,5 +1,5 @@
-#Avg_IMG_Viewer.py created by BWM 9/12/22
-#program to create pretty averaged images plot and save them
+#Avg_IMG_Viewer.py created by BWM 11/15/22
+#program to create pretty plot of SDs
 
 import numpy as np
 import Big_keck_load as BKL
@@ -25,8 +25,8 @@ foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
 numImagesF = int(os.path.getsize(foreFile)/(1024+512*512*2))
 numImagesB = int(os.path.getsize(backFile)/(1024+512*512*2))
-foreStack = np.zeros((8,512,512),dtype=np.double)
-backStack = np.zeros((8,512,512),dtype=np.double)
+foreStack = np.zeros((numImagesF,8,512,512),dtype=np.double)
+backStack = np.zeros((numImagesB,8,512,512),dtype=np.double)
  
 
 ##################################
@@ -37,16 +37,22 @@ clipLow = 0
 #read all the image files
 for fIdex in range(numImagesB):
    payloadB = BKL.keckFrame(backImage)
-   backStack[(payloadB[3]-1)%8,:,:] += np.resize(payloadB[4],[512,512])
+   backStack[payloadB[5]-1,(payloadB[3]-1)%8,:,:] += np.resize(payloadB[4],[512,512])
 
-avgBack = backStack/(numImagesB/8.0)
+#avgBack = backStack/(numImagesB/8.0)
 
 for fIdex in range(numImagesF):
    payload = BKL.keckFrame(foreImage)
-   foreStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
+   foreStack[payload[5]-1,(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
+standDev = np.zeros((8,512,512),dtype=np.double)
+DiffStack = foreStack-backStack
+for cap in range(8):
+   PerCapImage = DiffStack[:,cap,:,:]
+   standDev[cap,:,:] += np.std(PerCapImage, axis=0)
 
-avgFore = foreStack/(numImagesB/8.0)
-plotData = avgFore-avgBack
+
+
+plotData = standDev
 plotDataClip = np.clip(plotData, clipLow, clipHigh)
 avgplotData = np.average(plotDataClip, axis=0)
 avg,axs = plt.subplots(1)
@@ -56,6 +62,7 @@ axs.set_title('Keck Cap Average')
 axs.set_ylabel("Pixel")
 axs.set_xlabel("Pixel")
 Acbar.set_label ("Counts (ADU)")
+
 # fig.set_size_inches(20, 10)    
 # fig.subplots_adjust(wspace = 0.545)
 avg.savefig(foreFile + "_Avg.png")

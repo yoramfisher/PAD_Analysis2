@@ -6,9 +6,10 @@ import Big_keck_load as BKL
 import os
 import matplotlib.pyplot as plt
 import sys
+from tkinter import filedialog as fd
 
-foreFile = "/mnt/raid/keckpad/set-geocal_dcsKeck/run-geocal_f/frames/geocal_f_00000001.raw"
-backFile = "/mnt/raid/keckpad/set-geocal_dcsKeck/run-geocal_b/frames/geocal_b_00000001.raw"
+foreFile = fd.askopenfilename()
+backFile = fd.askopenfilename()
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
