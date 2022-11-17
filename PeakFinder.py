@@ -7,6 +7,8 @@ import os
 import matplotlib.pyplot as plt
 import sys
 import tkinter.filedialog as fd
+import findpeaks.findpeaks as fp
+
 
 def file_select(Type):
   
@@ -16,13 +18,15 @@ def file_select(Type):
   
    )
    return filename
+
+
 ####
 #uncomment for file dialog
 # backFile = file_select("Background File")
 # foreFile = file_select("Foreground File")
 
-foreFile = "/mnt/raid/keckpad/set-junk123/run-1ms_flat_fore/frames/1ms_flat_fore_00000001.raw"
-backFile = "/mnt/raid/keckpad/set-junk123/run-1ms_flat_back/frames/1ms_flat_back_00000001.raw"
+foreFile = "/Volumes/BMARTIN/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
+backFile = "/Volumes/BMARTIN/set-Geod/run-b3ms/frames/b3ms_00000001.raw"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
@@ -31,12 +35,12 @@ numImagesB = int(os.path.getsize(backFile)/(1024+512*512*2))
 foreStack = np.zeros((8,512,512),dtype=np.double)
 backStack = np.zeros((8,512,512),dtype=np.double)
  
-
+preview = 0 #change to 0 if dont want a preview of file
 ##################################
 #Adjust for clipping
 ##################################
-clipHigh = 1e8
-clipLow = 0
+clipHigh = 1e4
+clipLow = 50
 #read all the image files
 for fIdex in range(numImagesB):
    payloadB = BKL.keckFrame(backImage)
@@ -52,51 +56,71 @@ avgFore = foreStack/(numImagesB/8.0)
 plotData = avgFore-avgBack
 plotDataClip = np.clip(plotData, clipLow, clipHigh)
 avgplotData = np.average(plotDataClip, axis=0)
-avg,axs = plt.subplots(1)
-imageAvg = axs.imshow(avgplotData, cmap = "viridis")
-Acbar = avg.colorbar(imageAvg, aspect=10)
-axs.set_title('Keck Cap Average')
-axs.set_ylabel("Pixel")
-axs.set_xlabel("Pixel")
-Acbar.set_label ("Counts (ADU)")
+if preview == 1:
+   avg,axs = plt.subplots(1)
+   imageAvg = axs.imshow(avgplotData, cmap = "viridis")
+   Acbar = avg.colorbar(imageAvg, aspect=10)
+   axs.set_title('Keck Cap Average')
+   axs.set_ylabel("Pixel")
+   axs.set_xlabel("Pixel")
+   Acbar.set_label ("Counts (ADU)")
+   plt.show()
+else: 
+   print ("no preview")
+
+
+finderP = fp(method="topology", interpolate=True)
+#finderP = fp(method="topology", interpolate=None, limit=1, verbose=5)
+geoCalPeaks = finderP.fit(avgplotData)
+x= geoCalPeaks['Xdetect']
+print (str(geoCalPeaks.keys()))
+#print(geoCalPeaks['persistance'])
+#print(geoCalPeaks)
+plotData = np.resize(x, [512,512])
+plt.imshow(plotData)
+plt.show()
+# dataWrite = np.savetxt(fname='peaks.txt',X=x, delimiter=' ' )
+# with open('peaks.txt', 'w') as f:
+#    f.write(dataWrite)
+#    f.close()
 # fig.set_size_inches(20, 10)    
 # fig.subplots_adjust(wspace = 0.545)
-avg.savefig(foreFile + "_Avg.png")
+#avg.savefig(foreFile + "_Avg.png")
 
 # plt.imshow(plotData)
 
 
-allplot = []
-for val in range(8):
-   allplot.append(plotDataClip[val,:,:])
+# allplot = []
+# for val in range(8):
+#    allplot.append(plotDataClip[val,:,:])
 
 
-indexVal =  (-1)
-fig,ax = plt.subplots(2,4)
-for pic in allplot:
-   indexVal += 1 
-   indexRow = int(indexVal/4) 
-   indexCol = int(indexVal%4)
-   #indexVal = allplot.index(pic)
-   image = ax[indexRow,indexCol].imshow(pic, cmap = "viridis")
-   # ax.imshow(pic)
-# fig,ax = plt.subplots(1)
-#needed to add more stuff
-# image = ax.imshow(clipData, cmap = "viridis")
-   cbar = fig.colorbar(image, aspect=10, ax = ax[indexRow,indexCol])
-   ax[indexRow,indexCol].set_title('DCS Keck Cap'+ str(indexVal))
-   ax[indexRow,indexCol].set_ylabel("Pixel")
-   ax[indexRow,indexCol].set_xlabel("Pixel")
-   cbar.set_label ("Counts (ADU)")
-fig.set_size_inches(20, 10)    
-fig.subplots_adjust(wspace = 0.545)
-fig.savefig(foreFile + "_AvgAll.png")
-plotData1 = plotData[0,:,:]
+# indexVal =  (-1)
+# fig,ax = plt.subplots(2,4)
+# for pic in allplot:
+#    indexVal += 1 
+#    indexRow = int(indexVal/4) 
+#    indexCol = int(indexVal%4)
+#    #indexVal = allplot.index(pic)
+#    image = ax[indexRow,indexCol].imshow(pic, cmap = "viridis")
+#    # ax.imshow(pic)
+# # fig,ax = plt.subplots(1)
+# #needed to add more stuff
+# # image = ax.imshow(clipData, cmap = "viridis")
+#    cbar = fig.colorbar(image, aspect=10, ax = ax[indexRow,indexCol])
+#    ax[indexRow,indexCol].set_title('DCS Keck Cap'+ str(indexVal))
+#    ax[indexRow,indexCol].set_ylabel("Pixel")
+#    ax[indexRow,indexCol].set_xlabel("Pixel")
+#    cbar.set_label ("Counts (ADU)")
+# fig.set_size_inches(20, 10)    
+# fig.subplots_adjust(wspace = 0.545)
+# #fig.savefig(foreFile + "_AvgAll.png")
+# plotData1 = plotData[0,:,:]
 
-#average the data across all 8 caps
-plotData = np.average(plotData, axis=0)
-#clip data below to get rid of hot pixels and negative pixels
-clipData = np.clip(plotData, clipLow, clipHigh)
+# #average the data across all 8 caps
+# plotData = np.average(plotData, axis=0)
+# #clip data below to get rid of hot pixels and negative pixels
+# clipData = np.clip(plotData, clipLow, clipHigh)
 
 ########################
 #code to plot all 8 caps individually
@@ -127,7 +151,7 @@ clipData = np.clip(plotData, clipLow, clipHigh)
 # ax.set_xlabel("Pixel")
 # cbar.set_label ("Counts (ADU)")
 #fig.savefig(foreFile + "_Avg.png")
-plt.show()
+#plt.show()
 
 #################
 #3d Projection plot code example
