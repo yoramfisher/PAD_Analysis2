@@ -6,7 +6,7 @@ import Big_keck_load as BKL
 import os
 import matplotlib.pyplot as plt
 import sys
-from tkinter import filedialog as fd
+import tkinter.filedialog as fd
 
 foreFile = fd.askopenfilename()
 backFile = fd.askopenfilename()

@@ -17,9 +17,10 @@ def file_select(Type):
    )
    return filename
 
-backFile = file_select("Background File")
-foreFile = file_select("Foreground File")
-
+# backFile = file_select("Background File")
+# foreFile = file_select("Foreground File")
+foreFile = '/mnt/raid/keckpad/set-HeadRework/run-dark50ns/frames/dark50ns_00000001.raw'
+backFile = '/mnt/raid/keckpad/set-HeadRework/run-dark50ns_1/frames/dark50ns_1_00000001.raw'
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
@@ -33,7 +34,7 @@ backStack = np.zeros((numImagesB,8,512,512),dtype=np.double)
 #Adjust for clipping
 ##################################
 clipHigh = 1e8
-clipLow = 0
+clipLow = -10000
 #read all the image files
 for fIdex in range(numImagesB):
    payloadB = BKL.keckFrame(backImage)
@@ -65,7 +66,7 @@ Acbar.set_label ("Counts (ADU)")
 
 # fig.set_size_inches(20, 10)    
 # fig.subplots_adjust(wspace = 0.545)
-avg.savefig(foreFile + "_Avg.png")
+avg.savefig(foreFile + "_SD.png")
 
 # plt.imshow(plotData)
 
@@ -94,7 +95,7 @@ for pic in allplot:
    cbar.set_label ("Counts (ADU)")
 fig.set_size_inches(20, 10)    
 fig.subplots_adjust(wspace = 0.545)
-fig.savefig(foreFile + "_AvgAll.png")
+fig.savefig(foreFile + "_SDAvgAll.png")
 plotData1 = plotData[0,:,:]
 
 #average the data across all 8 caps

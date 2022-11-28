@@ -12,17 +12,14 @@ def file_select(Type):
   
    filename = fd.askopenfilename(
       title = "Open " + str(Type),
-      initialdir = "/mnt/raid/keckpad",
+      initialdir = "/mnt/raid/keckpad/set-HeadRework",
   
    )
    return filename
-####
-#uncomment for file dialog
-# backFile = file_select("Background File")
-# foreFile = file_select("Foreground File")
 
-foreFile = "/mnt/raid/keckpad/set-junk123/run-1ms_flat_fore/frames/1ms_flat_fore_00000001.raw"
-backFile = "/mnt/raid/keckpad/set-junk123/run-1ms_flat_back/frames/1ms_flat_back_00000001.raw"
+backFile = file_select("Background File")
+foreFile = file_select("Foreground File")
+
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
@@ -35,7 +32,7 @@ backStack = np.zeros((8,512,512),dtype=np.double)
 ##################################
 #Adjust for clipping
 ##################################
-clipHigh = 1e8
+clipHigh = 5e2
 clipLow = 0
 #read all the image files
 for fIdex in range(numImagesB):
@@ -84,7 +81,7 @@ for pic in allplot:
 #needed to add more stuff
 # image = ax.imshow(clipData, cmap = "viridis")
    cbar = fig.colorbar(image, aspect=10, ax = ax[indexRow,indexCol])
-   ax[indexRow,indexCol].set_title('DCS Keck Cap'+ str(indexVal))
+   ax[indexRow,indexCol].set_title('Keck Cap'+ str(indexVal))
    ax[indexRow,indexCol].set_ylabel("Pixel")
    ax[indexRow,indexCol].set_xlabel("Pixel")
    cbar.set_label ("Counts (ADU)")
