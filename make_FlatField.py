@@ -18,8 +18,8 @@ def file_select(Type):
    return filename
 
 #backFile = file_select("Background File")
-#foreFile = file_select("Foreground File")
-foreFile = "/Volumes/BMARTIN/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
+foreFile = file_select("Foreground File")
+#foreFile = "/Volumes/BMARTIN/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
 #backFile = "/Volumes/BMARTIN/set-Geod/run-b3ms/frames/b3ms_00000001.raw"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")

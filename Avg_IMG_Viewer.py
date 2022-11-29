@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import sys
 import tkinter.filedialog as fd
 import pickle as pkl
+
 def file_select(Type):
   
    filename = fd.askopenfilename(
@@ -17,7 +18,7 @@ def file_select(Type):
    )
    return filename
 
-FFImage = 1 # set to 0 if dont want to FF
+FFImage = 0 # set to 0 if dont want to FF
 
 backFile = file_select("Background File")
 foreFile = file_select("Foreground File")
@@ -29,17 +30,18 @@ numImagesF = int(os.path.getsize(foreFile)/(1024+512*512*2))
 numImagesB = int(os.path.getsize(backFile)/(1024+512*512*2))
 foreStack = np.zeros((8,512,512),dtype=np.double)
 backStack = np.zeros((8,512,512),dtype=np.double)
-
+FFStat = "noFF"
 if FFImage ==1 :
-   fileObject = open("pickleFF.pi", 'wb')
+   fileObject = open(cwd + "/pickleFF.pi", 'rb')
    ffCorect = pkl.load(fileObject)
    fileObject.close()
-
+   FFStat = "FF"
+else: ffCorect = 1
 
 ##################################
 #Adjust for clipping
 ##################################
-clipHigh = 5e2
+clipHigh = 1e3
 clipLow = 0
 #read all the image files
 for fIdex in range(numImagesB):
@@ -65,7 +67,7 @@ axs.set_xlabel("Pixel")
 Acbar.set_label ("Counts (ADU)")
 # fig.set_size_inches(20, 10)    
 # fig.subplots_adjust(wspace = 0.545)
-avg.savefig(foreFile + "_Avg.png")
+avg.savefig(foreFile + FFStat +"_Avg.png")
 
 # plt.imshow(plotData)
 
@@ -94,7 +96,7 @@ for pic in allplot:
    cbar.set_label ("Counts (ADU)")
 fig.set_size_inches(20, 10)    
 fig.subplots_adjust(wspace = 0.545)
-fig.savefig(foreFile + "_AvgAll.png")
+fig.savefig(foreFile + FFStat + "_AvgAll.png")
 plotData1 = plotData[0,:,:]
 
 #average the data across all 8 caps
