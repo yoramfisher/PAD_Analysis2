@@ -26,7 +26,7 @@ def keckFrame(dataFile):
 
     dataFile.read(256-(16+16+16+41)) #read remainder of header bites
 
-    dt = np.dtype('uint16')
+    dt = np.dtype('int16')
     data = np.fromfile(dataFile, count = (lengthParms[1] * lengthParms[2]), dtype = dt)
     dataFile.read(768) #read footer bites 
     return frameParms, lengthParms, frameMeta, capNum, data, frameNum

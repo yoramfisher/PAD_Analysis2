@@ -1,5 +1,5 @@
-#Avg_IMG_Viewer.py created by BWM 9/12/22
-#program to create pretty averaged images plot and save them
+#make_FlatField.py created by BWM 1/28/22
+#program to create a flat field correction file and save per cap version of normalized correction
 
 import numpy as np
 import Big_keck_load as BKL
@@ -17,24 +17,18 @@ def file_select(Type):
    )
    return filename
 
-FFImage = 1 # set to 0 if dont want to FF
-
-backFile = file_select("Background File")
-foreFile = file_select("Foreground File")
-
+#backFile = file_select("Background File")
+#foreFile = file_select("Foreground File")
+foreFile = "/Volumes/BMARTIN/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
+#backFile = "/Volumes/BMARTIN/set-Geod/run-b3ms/frames/b3ms_00000001.raw"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
-backImage = open(backFile,"rb")
+#backImage = open(backFile,"rb")
 numImagesF = int(os.path.getsize(foreFile)/(1024+512*512*2))
-numImagesB = int(os.path.getsize(backFile)/(1024+512*512*2))
+#numImagesB = int(os.path.getsize(backFile)/(1024+512*512*2))
 foreStack = np.zeros((8,512,512),dtype=np.double)
-backStack = np.zeros((8,512,512),dtype=np.double)
-
-if FFImage ==1 :
-   fileObject = open("pickleFF.pi", 'wb')
-   ffCorect = pkl.load(fileObject)
-   fileObject.close()
-
+#backStack = np.zeros((8,512,512),dtype=np.double)
+ 
 
 ##################################
 #Adjust for clipping
@@ -42,32 +36,49 @@ if FFImage ==1 :
 clipHigh = 5e2
 clipLow = 0
 #read all the image files
-for fIdex in range(numImagesB):
-   payloadB = BKL.keckFrame(backImage)
-   backStack[(payloadB[3]-1)%8,:,:] += np.resize(payloadB[4],[512,512])
+# for fIdex in range(numImagesB):
+#    payloadB = BKL.keckFrame(backImage)
+#    backStack[(payloadB[3]-1)%8,:,:] += np.resize(payloadB[4],[512,512])
 
-avgBack = backStack/(numImagesB/8.0)
+# avgBack = backStack/(numImagesB/8.0)
 
 for fIdex in range(numImagesF):
    payload = BKL.keckFrame(foreImage)
    foreStack[(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
 
-avgFore = foreStack/(numImagesB/8.0)
-plotData = (avgFore-avgBack) * ffCorect
+avgFore = foreStack/(numImagesF/8.0)
+normFore = np.zeros((8,512,512), dtype=np.double)
+for cap in range(8):
+   dataMax = np.max(avgFore[cap,:,:])
+
+   normFore[cap,:,:] += avgFore[cap,:,:]/dataMax
+
+
+fileName = cwd + '/pickleFF.pi'
+fileObject = open(fileName, 'wb')
+pkl.dump(normFore, fileObject)
+fileObject.close()
+
+#######################
+#Code to unpickle, need pickle import 
+# fileObject = open(fileName, 'wb')
+# modelInput = pkl.load(fileObject2)
+# fileObject2.close()
+
+plotData = normFore
 plotDataClip = np.clip(plotData, clipLow, clipHigh)
-avgplotData = np.average(plotDataClip, axis=0)
-avg,axs = plt.subplots(1)
-imageAvg = axs.imshow(avgplotData, cmap = "viridis")
-Acbar = avg.colorbar(imageAvg, aspect=10)
-axs.set_title('Keck Cap Average')
-axs.set_ylabel("Pixel")
-axs.set_xlabel("Pixel")
-Acbar.set_label ("Counts (ADU)")
+# avgplotData = np.average(plotDataClip, axis=0)
+# avg,axs = plt.subplots(1)
+# imageAvg = axs.imshow(avgplotData, cmap = "viridis")
+# Acbar = avg.colorbar(imageAvg, aspect=10)
+# axs.set_title('Keck Cap Average')
+# axs.set_ylabel("Pixel")
+# axs.set_xlabel("Pixel")
+#Acbar.set_label ("Counts (ADU)")
 # fig.set_size_inches(20, 10)    
 # fig.subplots_adjust(wspace = 0.545)
-avg.savefig(foreFile + "_Avg.png")
 
-# plt.imshow(plotData)
+#plt.imshow(plotData)
 
 
 allplot = []
@@ -94,13 +105,13 @@ for pic in allplot:
    cbar.set_label ("Counts (ADU)")
 fig.set_size_inches(20, 10)    
 fig.subplots_adjust(wspace = 0.545)
-fig.savefig(foreFile + "_AvgAll.png")
+
 plotData1 = plotData[0,:,:]
 
 #average the data across all 8 caps
-plotData = np.average(plotData, axis=0)
+#plotData = np.average(plotData, axis=0)
 #clip data below to get rid of hot pixels and negative pixels
-clipData = np.clip(plotData, clipLow, clipHigh)
+#clipData = np.clip(plotData, clipLow, clipHigh)
 
 ########################
 #code to plot all 8 caps individually
