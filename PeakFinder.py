@@ -25,8 +25,9 @@ def file_select(Type):
 # backFile = file_select("Background File")
 # foreFile = file_select("Foreground File")
 
-foreFile = "/Volumes/BMARTIN/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
-backFile = "/Volumes/BMARTIN/set-Geod/run-b3ms/frames/b3ms_00000001.raw"
+foreFile = "C:/Users/valerief/Desktop/KeckPAD_headdata/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
+backFile = "C:/Users/valerief/Desktop/KeckPAD_headdata/set-Geod/run-b3ms/frames/b3ms_00000001.raw"
+# oneFile = "C:/Users/valerief/Desktop/KeckPAD_headdata/AVG_geocal_keck020.tif"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
@@ -35,7 +36,7 @@ numImagesB = int(os.path.getsize(backFile)/(1024+512*512*2))
 foreStack = np.zeros((8,512,512),dtype=np.double)
 backStack = np.zeros((8,512,512),dtype=np.double)
  
-preview = 0 #change to 0 if dont want a preview of file
+preview = 1 #change to 0 if dont want a preview of file
 ##################################
 #Adjust for clipping
 ##################################
@@ -69,8 +70,8 @@ else:
    print ("no preview")
 
 
-finderP = fp(method="topology", interpolate=True)
-#finderP = fp(method="topology", interpolate=None, limit=1, verbose=5)
+# finderP = fp(method="topology", interpolate=True)
+finderP = fp(method="topology", interpolate=None, limit=1, verbose=5)
 geoCalPeaks = finderP.fit(avgplotData)
 x= geoCalPeaks['Xdetect']
 print (str(geoCalPeaks.keys()))
