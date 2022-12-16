@@ -1,5 +1,5 @@
-#Avg_IMG_Viewer.py created by BWM 9/12/22
-#program to create pretty averaged images plot and save them
+#MMAvg_IMG_Viewer.py created by BWM 11/29/22
+#program to create pretty averaged images plot and save them for MM
 
 import numpy as np
 import Big_keck_load as BKL
@@ -18,8 +18,8 @@ def file_select(Type):
    return filename
 
 # backFile = file_select("Background File")
-foreFile = file_select("Foreground File")
-
+#foreFile = file_select("Foreground File")
+foreFile = "/Volumes/BMARTIN/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 # backImage = open(backFile,"rb")
