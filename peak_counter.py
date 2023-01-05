@@ -5,6 +5,7 @@ import Big_keck_load as BKL
 import scipy
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
+from scipy.optimize import minimize
 import imageio
 import os
 import matplotlib
@@ -26,7 +27,7 @@ def gen_grid(length, delta, scale, theta, offset=(0,0)):
         print("Length must be odd.")
         return None
 
-    mid_value = length/2+1;     # Get the value in the middle of the length
+    mid_val = length/2+1;     # Get the value in the middle of the length
 
     grid_points = [];
     for row_idx in range(length):
@@ -47,6 +48,7 @@ class Peak_Image:
         self.ASIC_HEIGHT = 128
         self.ASIC_WIDTH = 128
         self.PEAKS_EXPECTED = 81
+        self.LENGTH = 9
         self.NUM_COLS = 4
         self.NUM_ROWS = 4
         self.peak_img = None
@@ -54,6 +56,7 @@ class Peak_Image:
         self.labeled_img = None
         self.num_objects = 0
         self.CoM = None
+        self.asic_com = None    # A list of CoM in a specified ASIC
         return
     
     def set_image(self, newImage):
@@ -140,6 +143,78 @@ class Peak_Image:
                 min_idx = point_idx
 
         return min_idx, min_dist_sq
+
+    def set_asic(self, row, col):
+        asic_com = self.com_in_asic((row, col)) # Create a list of centers of mass
+        print("Raw ASIC COM")
+        print(asic_com)
+        # Compute the center point of the grid to place the generated grid
+        avg_row = 0
+        avg_col = 0
+        point_count = 0.0
+        for curr_point in asic_com:
+            avg_row += curr_point[0]
+            avg_col += curr_point[1]
+            point_count += 1.0
+        avg_row = avg_row / point_count
+        avg_col = avg_col / point_count
+        
+        # Create a grid in the nominal position
+        nominal_grid = gen_grid(self.LENGTH, 11, 1.0, 0.0, (avg_row, avg_col))
+        # The nominal grid has an order, so create the center-of-mass grids with that order
+        self.asic_com = []
+        for curr_point in nominal_grid:
+            curr_com = self.nearest_com(curr_point, asic_com) # Find the nearest point -- should be in order
+            self.asic_com.append(asic_com[curr_com[0]]);                   # Append the CoM
+        return True
+
+    # Assume that the internal CoM list has been set with set_asic
+    # Grid coeff is an array with scale, theta, offset_row, offset_col
+    def calc_err(self, grid_coeff):
+        # First generate the grid we are fitting
+        curr_grid = gen_grid(self.LENGTH, 11, grid_coeff[0], grid_coeff[1], (grid_coeff[2], grid_coeff[3]))
+
+        # Evaluate distance**2 for each point in generated grid to its match in the mask
+        total_dist = 0.0
+        print("##############")
+        print(len(curr_grid))
+        for curr_idx in range(len(curr_grid)):
+            curr_point = curr_grid[curr_idx]
+            curr_com = self.asic_com[curr_idx]
+            print("{},{}".format(curr_point, curr_com))
+            min_dist = self.point_dist_sq(curr_point, curr_com)
+            total_dist += math.sqrt(min_dist)
+
+        return total_dist
+
+    # Assume that the internal CoM list has been set with set_asic
+    # Grid coeff is an array with scale, theta, offset_row, offset_col
+    def calc_err_unorder(self, grid_coeff):
+        # First generate the grid we are fitting
+        curr_grid = gen_grid(self.LENGTH, 11, grid_coeff[0], grid_coeff[1], (grid_coeff[2], grid_coeff[3]))
+
+        # Evaluate distance**2 for each point in generated grid to its match in the mask
+        total_dist = 0.0
+
+        for curr_point in curr_grid:
+            min_idx, min_dist = self.nearest_com(curr_point, self.asic_com)
+            total_dist += math.sqrt(min_dist)
+
+        return total_dist
+        
+    # Assume that the internal CoM list has been set with set_asic
+    # Grid coeff is an array with theta, offset_row, offset_col
+    def calc_err2(self, grid_coeff):
+        # First generate the grid we are fitting
+        curr_grid = gen_grid(self.LENGTH, 11, 1.0, grid_coeff[0], (grid_coeff[1], grid_coeff[2]))
+
+        # Evaluate distance**2 for each point in generated grid
+        total_dist = 0.0
+        for curr_point in curr_grid:
+            min_idx, min_dist = self.nearest_com(curr_point, self.asic_com)
+            total_dist += math.sqrt(min_dist)
+
+        return total_dist
     
 maskPath = "F_forgeocal.tiff"
 
@@ -183,6 +258,32 @@ com_idx, com_dist_sq = geocal_img.nearest_com(test_nearest, my_com_list)
 print("Nearest CoM to {},{} is {},{}.".format(test_nearest[0], test_nearest[1], my_com_list[com_idx][0], my_com_list[com_idx][1]));
 
 # Plot rotated grid
+
+my_grid = gen_grid(9, 11, 1, 10.0/180*3.141593, offset=(448,192))
+my_grid = gen_grid(9, 11, 1, 0, offset=(448,192))
+#for point in my_grid:
+#    geocal_img.peak_img[int(point[0]),int(point[1])] = 200
+
+#plt.imshow(geocal_img.peak_img)
+#plt.show()
+
+# Now try the minimization
+geocal_img.set_asic(3,0)
+res1 = minimize(geocal_img.calc_err, [1.0, 0, 448, 64], method='nelder-mead')
+print(res1.x)
+res1_x = res1.x
+my_grid = gen_grid(9, 11, res1_x[0], res1_x[1], offset=(res1_x[2], res1_x[3]))
+
+print("CoM points:")
+print(geocal_img.asic_com)
+
+for point in my_grid:
+    if (point[0] < 0) or (point[0] >= 512) or (point[1] < 0) or (point[1] >= 512):
+        continue
+    geocal_img.peak_img[int(point[0]),int(point[1])] = 200
+
+plt.imshow(geocal_img.peak_img)
+plt.show()
 
 
                                
