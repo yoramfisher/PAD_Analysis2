@@ -316,7 +316,17 @@ my_grid = gen_grid(9, 11, res1_x[0], res1_x[1], offset=(res1_x[2], res1_x[3]))
 print("CoM points:")
 print(geocal_img.asic_com)
 
-for point in my_grid:
+# Try iterating over every asic
+full_grid = []
+for asic_row in range(4):
+    for asic_col in range(4):
+        geocal_img.set_asic(asic_row, asic_col)
+        res1 = minimize(geocal_img.calc_err, [1.0, 0, 1.5*asic_row*128, 1.5*asic_col*128], method='nelder-mead')
+        res1_x = res1.x
+        my_grid = gen_grid(9, 11, res1_x[0], res1_x[1], offset=(res1_x[2], res1_x[3]))
+        full_grid.extend(my_grid)
+        
+for point in full_grid:
     if (point[0] < 0) or (point[0] >= 512) or (point[1] < 0) or (point[1] >= 512):
         continue
     geocal_img.peak_img[int(point[0]),int(point[1])] = 200
