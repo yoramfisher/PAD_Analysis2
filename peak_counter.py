@@ -56,6 +56,7 @@ class Peak_Image:
         self.labeled_img = None
         self.num_objects = 0
         self.CoM = None
+        self.DELTA = 11
         self.asic_com = None    # A list of CoM in a specified ASIC
         return
     
@@ -144,9 +145,14 @@ class Peak_Image:
 
         return min_idx, min_dist_sq
 
+    def nearest_com_point(self, point, com_list):
+        min_idx, min_distsq = self.nearest_com(point, com_list)
+        return com_list[min_idx]
+    
     def set_asic(self, row, col):
         asic_com = self.com_in_asic((row, col)) # Create a list of centers of mass
         print("Raw ASIC COM")
+        print(len(asic_com))
         print(asic_com)
         # Compute the center point of the grid to place the generated grid
         avg_row = 0
@@ -158,21 +164,54 @@ class Peak_Image:
             point_count += 1.0
         avg_row = avg_row / point_count
         avg_col = avg_col / point_count
+
+        print("Nominal center: {}, {}".format(avg_row, avg_col))
+        # Find the actual starting position
+        center_pos_a = self.nearest_com_point((avg_row, avg_col), asic_com)
+        print("Actual center: {}, {}".format(center_pos_a[0], center_pos_a[1]))
         
-        # Create a grid in the nominal position
-        nominal_grid = gen_grid(self.LENGTH, 11, 1.0, 0.0, (avg_row, avg_col))
-        # The nominal grid has an order, so create the center-of-mass grids with that order
-        self.asic_com = []
-        for curr_point in nominal_grid:
-            curr_com = self.nearest_com(curr_point, asic_com) # Find the nearest point -- should be in order
-            self.asic_com.append(asic_com[curr_com[0]]);                   # Append the CoM
+
+        # Now walk our way to the left
+        half_walk_limit = int(self.LENGTH/2)
+        curr_found_point = center_pos_a; # Start from the center
+        for col_idx in range(half_walk_limit):
+            curr_test_point = (curr_found_point[0], curr_found_point[1]-self.DELTA); # Adjust self.DELTA to the left
+            curr_found_point = self.nearest_com_point(curr_test_point, asic_com) # Update the point with the newest
+
+        # Walk upwards
+        for row_idx in range(half_walk_limit):
+            curr_test_point = (curr_found_point[0]-self.DELTA, curr_found_point[1]); # Walk upwards
+            curr_found_point = self.nearest_com_point(curr_test_point, asic_com)
+
+        # We should now have the top-left point found
+        print("Grid top-left is: {}".format(curr_found_point))
+
+        # Prepare some bookkeeping variable
+        self.asic_com = []      # Empty list
+        row_start_point = curr_found_point # We need to refer to the start of the row after doing all columns
+        curr_iter_point = curr_found_point # The point we use in iteration
+        curr_com_point = curr_found_point  # The point we store the nearest in
+    
+        for row_idx in range(self.LENGTH):
+            for col_idx in range(self.LENGTH):
+                curr_com_point = self.nearest_com_point(curr_iter_point, asic_com); # Compute the nearest
+                self.asic_com.append(curr_com_point) # Add to the list
+                print(curr_com_point)
+                curr_iter_point = (curr_com_point[0], curr_com_point[1]+self.DELTA); # Walk right one point
+            # To prepare for the next row
+            curr_iter_point = (row_start_point[0]+self.DELTA, row_start_point[1]) # Go to the start of the row, then walk down one point
+            curr_com_point = self.nearest_com_point(curr_iter_point, asic_com) # Compute nearest
+            row_start_point = curr_com_point # Update row value for next row
+            curr_iter_point = curr_com_point # Store value for next iteration
+                
+                                 
         return True
 
     # Assume that the internal CoM list has been set with set_asic
     # Grid coeff is an array with scale, theta, offset_row, offset_col
     def calc_err(self, grid_coeff):
         # First generate the grid we are fitting
-        curr_grid = gen_grid(self.LENGTH, 11, grid_coeff[0], grid_coeff[1], (grid_coeff[2], grid_coeff[3]))
+        curr_grid = gen_grid(self.LENGTH, self.DELTA, grid_coeff[0], grid_coeff[1], (grid_coeff[2], grid_coeff[3]))
 
         # Evaluate distance**2 for each point in generated grid to its match in the mask
         total_dist = 0.0
@@ -191,7 +230,7 @@ class Peak_Image:
     # Grid coeff is an array with scale, theta, offset_row, offset_col
     def calc_err_unorder(self, grid_coeff):
         # First generate the grid we are fitting
-        curr_grid = gen_grid(self.LENGTH, 11, grid_coeff[0], grid_coeff[1], (grid_coeff[2], grid_coeff[3]))
+        curr_grid = gen_grid(self.LENGTH, self.DELTA, grid_coeff[0], grid_coeff[1], (grid_coeff[2], grid_coeff[3]))
 
         # Evaluate distance**2 for each point in generated grid to its match in the mask
         total_dist = 0.0
@@ -206,7 +245,7 @@ class Peak_Image:
     # Grid coeff is an array with theta, offset_row, offset_col
     def calc_err2(self, grid_coeff):
         # First generate the grid we are fitting
-        curr_grid = gen_grid(self.LENGTH, 11, 1.0, grid_coeff[0], (grid_coeff[1], grid_coeff[2]))
+        curr_grid = gen_grid(self.LENGTH, self.DELTA, 1.0, grid_coeff[0], (grid_coeff[1], grid_coeff[2]))
 
         # Evaluate distance**2 for each point in generated grid
         total_dist = 0.0
