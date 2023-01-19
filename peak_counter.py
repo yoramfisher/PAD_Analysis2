@@ -20,7 +20,14 @@ ASIC_HEIGHT = 128
 ASIC_WIDTH  = 128
 
 PEAKS_EXPECTED = 81
-
+## Generates a square grid of points
+#
+# @param length    How many points on a side
+# @param delta     The nominal number of pixels between peaks on the mask
+# @param scale     The scaling factor to apply to the grid spacing
+# @param theta     The rotation clockwise in radians - Clockwise since Y goes down
+# @param offset    The offset of the grid, specified as (y,x)
+# @return List of (LENGTH^2) tuples of (row, col) on success, None on failure
 def gen_grid(length, delta, scale, theta, offset=(0,0)):
     length = int(length)
     if length%2 == 0:
@@ -42,29 +49,43 @@ def gen_grid(length, delta, scale, theta, offset=(0,0)):
             grid_points.append((rot_row, rot_col))
 
     return grid_points
-                               
+
+## Peak_Image
+#
+#  Holds details of an image of peaks for geocalibration
 class Peak_Image:
+    ## Constructor
+    #
+    #  @return Object with default values
     def __init__(self):
-        self.ASIC_HEIGHT = 128
-        self.ASIC_WIDTH = 128
-        self.PEAKS_EXPECTED = 81
-        self.LENGTH = 9
-        self.NUM_COLS = 4
-        self.NUM_ROWS = 4
-        self.peak_img = None
-        self.neighbor_mask = np.array([[1,1,1],[1,1,1],[1,1,1]]);
-        self.labeled_img = None
+        self.ASIC_HEIGHT = 128    ##< The height of an ASIC in pixels
+        self.ASIC_WIDTH = 128     ##< The width of an ASIC in pixels
+        self.PEAKS_EXPECTED = 81  ##< The number of points in the mask pattern
+        self.LENGTH = 9           ##< The number of points on a side of the mask pattern
+        self.NUM_COLS = 4         ##< The number of columns of ASICs
+        self.NUM_ROWS = 4         ##< The number of rows of ASICS
+        self.peak_img = None      ##< The image of peaks
+        self.neighbor_mask = np.array([[1,1,1],[1,1,1],[1,1,1]]); ##< The mask to force 8-connection in the neighborhood labeling
+        self.labeled_img = None   ##< The peak image with the peaks uniquely labels
         self.num_objects = 0
-        self.CoM = None
-        self.DELTA = 11
-        self.asic_com = None    # A list of CoM in a specified ASIC
+        self.CoM = None           ##< The center of mass for some calculations.  (row, col)
+        self.DELTA = 11           ##< The nominal spacing in pixels between peaks from the mask
+        self.asic_com = None      ##< A list of CoM in a specified ASIC, in order from top-left to bottom right
+        self.center_delta = (-self.ASIC_WIDTH, -self.ASIC_HEIGHT); # X,Y of how far the center is from the nominal center of an ASIC -=-= FIXME Maybe change co-ordinates
         return
-    
+
+    ## Sets the image member
+    #  @param newImage The image to store -=-= XXX Hopefully a deep copy
+    #  @return None
     def set_image(self, newImage):
         self.peak_img = newImage + 0; # Try to enforce a deep copy
 
         return
 
+    ## Label the peaks of the image member
+    #
+    #  Labels the internal image with neighbors determined by neighbor mask member.
+    #  @return None if no image set.  True if image set.
     def label_peaks(self):
         if self.peak_img is None:
             return None
@@ -75,6 +96,9 @@ class Peak_Image:
 
         return True
 
+    ## Count the peaks in all the ASICs to verify correct number
+    #
+    #  @return False if image not set, no background found, or incorrect number of peaks found.  True on success.
     def quadrant_peak_count(self):
         if self.peak_img is None:
             return None
@@ -98,9 +122,18 @@ class Peak_Image:
                     return False
         return True
 
+    ## Compute the centers of mass
+    #
+    #  Computes a list of centers of mass for all peaks.  Run after label_peaks()
+    #  @return Always succeeds.
     def calc_CoM(self):
         self.CoM = ndimage.center_of_mass(self.peak_img, labels=self.labeled_img, index=list(set(self.labeled_img.flat)-set([0]))) # Get every unique peak and subtract out the CoM for 0, where there is no peak
-    
+
+    ## Determine if a point is an a specificed ASIC
+    #
+    #  @param test_point (row,col) of the point to test
+    #  @param asic_idx (asic row, asic_col) of the ASIC selected
+    #  @return True if point in ASIC, False if not
     def point_in_asic(self, test_point, asic_idx):
         start_row = self.ASIC_HEIGHT * asic_idx[0]
         start_col = self.ASIC_WIDTH * asic_idx[1]
@@ -113,6 +146,10 @@ class Peak_Image:
 
         return False
 
+    ## Determine CoMs in a specified ASIC
+    #
+    #  @param asic_idx (asic row, asic col) to extract CoMs from
+    #  @return List of (row, col) tuples of CoMs in the specfied ASIC
     def com_in_asic(self, asic_idx):
         CoM = [];
         
@@ -122,12 +159,23 @@ class Peak_Image:
 
         return CoM
 
+    ## Compute square distance between to points
+    #
+    #  -=-= FIXME check order of points in tuples
+    #  @param point1 (col,row) tuple of first point
+    #  @param point2 (col,row) tuple of second point
+    #  @return Square of distance between point1 and point2
     def point_dist_sq(self, point1, point2):
         delta_x = point1[0] - point2[0]
         delta_y = point1[1] - point2[1]
         
         return (delta_x*delta_x + delta_y*delta_y)
-    
+
+    ## Find nearest CoM to a point
+    #
+    #  @param point (row,col) tuple of point being tested
+    #  @param List of (row,col) tuples of CoMs to find nearest
+    #  @return (Index, Squared Distance) of CoM in list that is closed to point
     def nearest_com(self, point, com_list):
 
         # Initialize with first point
@@ -145,10 +193,21 @@ class Peak_Image:
 
         return min_idx, min_dist_sq
 
+    ## Find nearest CoM to a point
+    #
+    #  @param point (row,col) tuple of point being tested
+    #  @param List of (row,col) tuples of CoMs to find nearest
+    #  @return (row, col) of CoM in list that is closed to point
     def nearest_com_point(self, point, com_list):
         min_idx, min_distsq = self.nearest_com(point, com_list)
         return com_list[min_idx]
-    
+
+    ## Get ordered list of CoMs in a specified ASIC
+    #
+    #  @param row The row of the ASIC
+    #  @param col The column of the ASIC
+    #  Sets member list of CoMs in order from Top-Left to Bottom-Right
+    #  @return Always returns True
     def set_asic(self, row, col):
         asic_com = self.com_in_asic((row, col)) # Create a list of centers of mass
         print("Raw ASIC COM")
@@ -169,7 +228,9 @@ class Peak_Image:
         # Find the actual starting position
         center_pos_a = self.nearest_com_point((avg_row, avg_col), asic_com)
         print("Actual center: {}, {}".format(center_pos_a[0], center_pos_a[1]))
-        
+
+        y_grid_center = row*self.ASIC_HEIGHT + self.ASIC_HEIGHT/2
+        x_grid_center = col*self.ASIC_WIDTH + self.ASIC_WIDTH/2
 
         # Now walk our way to the left
         half_walk_limit = int(self.LENGTH/2)
@@ -207,8 +268,11 @@ class Peak_Image:
                                  
         return True
 
+    ## Calculate the total distance of points in a generated grid to the peaks in an ASIC
+    #
     # Assume that the internal CoM list has been set with set_asic
-    # Grid coeff is an array with scale, theta, offset_row, offset_col
+    # @param grid_coeff grid_coeff is an array with scale, theta, offset_row, offset_col
+    # @return Total distance
     def calc_err(self, grid_coeff):
         # First generate the grid we are fitting
         curr_grid = gen_grid(self.LENGTH, self.DELTA, grid_coeff[0], grid_coeff[1], (grid_coeff[2], grid_coeff[3]))
@@ -226,8 +290,9 @@ class Peak_Image:
 
         return total_dist
 
+    #-=-= NOTE Do not use; a scale of zero in grid_coeff will have zero error but be totally wrong.
     # Assume that the internal CoM list has been set with set_asic
-    # Grid coeff is an array with scale, theta, offset_row, offset_col
+    # grid_coeff is an array with scale, theta, offset_row, offset_col
     def calc_err_unorder(self, grid_coeff):
         # First generate the grid we are fitting
         curr_grid = gen_grid(self.LENGTH, self.DELTA, grid_coeff[0], grid_coeff[1], (grid_coeff[2], grid_coeff[3]))
@@ -240,7 +305,8 @@ class Peak_Image:
             total_dist += math.sqrt(min_dist)
 
         return total_dist
-        
+
+    # Do not use
     # Assume that the internal CoM list has been set with set_asic
     # Grid coeff is an array with theta, offset_row, offset_col
     def calc_err2(self, grid_coeff):
@@ -254,15 +320,17 @@ class Peak_Image:
             total_dist += math.sqrt(min_dist)
 
         return total_dist
-    
+
+# The path of the peak-detected image
 maskPath = "F_forgeocal.tiff"
 
+# Read in the image
 data = imageio.imread(maskPath)
 
 print("Image Shape: {}".format(data.shape))
 print("Image Type: {}".format(data.dtype))
 
-
+# Initialize the peak image object.
 geocal_img = Peak_Image()
 
 geocal_img.set_image(data)
@@ -317,14 +385,17 @@ print("CoM points:")
 print(geocal_img.asic_com)
 
 # Try iterating over every asic
-full_grid = []
+full_grid = [];  # A list of all found peaks over the full array
+asic_ctr = [];
+asic_grid = [];  # A list of peaks for each ASIC
 for asic_row in range(4):
     for asic_col in range(4):
         geocal_img.set_asic(asic_row, asic_col)
-        res1 = minimize(geocal_img.calc_err, [1.0, 0, 1.5*asic_row*128, 1.5*asic_col*128], method='nelder-mead')
+        res1 = minimize(geocal_img.calc_err, [1.0, 0, asic_row*128.0 + 0.5*128, asic_col*128.0+0.5*128], method='nelder-mead')
         res1_x = res1.x
         my_grid = gen_grid(9, 11, res1_x[0], res1_x[1], offset=(res1_x[2], res1_x[3]))
         full_grid.extend(my_grid)
+        asic_grid.append(my_grid)
         
 for point in full_grid:
     if (point[0] < 0) or (point[0] >= 512) or (point[1] < 0) or (point[1] >= 512):
