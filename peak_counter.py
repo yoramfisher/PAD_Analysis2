@@ -15,11 +15,49 @@ import tkinter.filedialog as fd
 import findpeaks.findpeaks as fp   # https://erdogant.github.io/findpeaks/pages/html/index.html 
 import tifffile
 import math
+import copy
 
 ASIC_HEIGHT = 128
 ASIC_WIDTH  = 128
 
 PEAKS_EXPECTED = 81
+
+## A named structure for geocal parameters
+class AsicCorrections:
+    ## Default constructor
+    def __init__(self, params):
+        self.length = params[0]
+        self.delta = params[1]
+        self.scale = params[2]
+        self.theta = params[3]
+        self.center = (params[4], params[5])
+
+    ## Gets the grid fit parameters as a list
+    def get_fit_list(self):
+        return [self.scale, self.theta, self.center[0], self.center[1]]
+
+## Holds the details of a submodule, created from two ASICs
+class Submodule:
+    ## Default constructor
+    #
+    #  @param asic_left -- Corrections for left ASIC
+    #  @param asic_right -- Corrections for right ASIC
+    def __init__(self, asic_left, asic_right):
+        self.corr_left = copy.deepcopy(asic_left)
+        self.corr_right = copy.deepcopy(asic_right)
+        self.avg_mag = (self.corr_left.scale + self.corr_left.scale)/2.0
+        self.avg_theta = (self.corr_left.theta + self.corr_left.theta)/2.0
+        self.left_delta = (-1234, -1234)
+        self.right_delta = (-1234, -1234) # Difference from center of ASIC
+
+    ## Compute difference between peak center and ASIC center
+    #
+    #  @param left_ctr Tuple of (y,x) of left ASIC center
+    #  @param right_ctr Tuple of (y,x) of right ASIC center
+    def calc_delta(self, left_ctr, right_ctr):
+        self.left_delta = (self.corr_left.center[0]-left_ctr[0], self.corr_left.center[1]-left_ctr[1])
+        self.right_delta = (self.corr_right.center[0]-right_ctr[0], self.corr_right.center[1]-right_ctr[1])
+        
 ## Generates a square grid of points
 #
 # @param length    How many points on a side
@@ -388,15 +426,28 @@ print(geocal_img.asic_com)
 full_grid = [];  # A list of all found peaks over the full array
 asic_ctr = [];
 asic_grid = [];  # A list of peaks for each ASIC
+asic_fit_info = [];
 for asic_row in range(4):
     for asic_col in range(4):
         geocal_img.set_asic(asic_row, asic_col)
         res1 = minimize(geocal_img.calc_err, [1.0, 0, asic_row*128.0 + 0.5*128, asic_col*128.0+0.5*128], method='nelder-mead')
         res1_x = res1.x
         my_grid = gen_grid(9, 11, res1_x[0], res1_x[1], offset=(res1_x[2], res1_x[3]))
+        curr_correction = AsicCorrections([9, 11, res1_x[0], res1_x[1], res1_x[2], res1_x[3]]);
+        asic_fit_info.append(curr_correction)
         full_grid.extend(my_grid)
         asic_grid.append(my_grid)
-        
+
+
+for sm_idx in range(8):
+    curr_submodule = Submodule(asic_fit_info[sm_idx*2], asic_fit_info[sm_idx*2+1])
+    asic_row = sm_idx / 2
+    asic_col = (sm_idx % 2) * 2;
+    curr_submodule.calc_delta((asic_row*ASIC_HEIGHT+ASIC_HEIGHT/2, asic_col*ASIC_WIDTH+ASIC_WIDTH/2), (ASIC_HEIGHT*asic_row+ASIC_HEIGHT/2, ASIC_WIDTH*(asic_col+1)+ASIC_WIDTH/2))
+    print("Submodule: {}".format(sm_idx))
+    print("ASIC Centers: Left: {}\tRight: {}".format(curr_submodule.corr_left.center, curr_submodule.corr_right.center))
+    print("Center deltas: Left: {}\tRight: {}".format(curr_submodule.left_delta, curr_submodule.right_delta))
+    
 for point in full_grid:
     if (point[0] < 0) or (point[0] >= 512) or (point[1] < 0) or (point[1] >= 512):
         continue
