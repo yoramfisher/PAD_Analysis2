@@ -46,9 +46,15 @@ class Submodule:
         self.corr_left = copy.deepcopy(asic_left)
         self.corr_right = copy.deepcopy(asic_right)
         self.avg_mag = (self.corr_left.scale + self.corr_left.scale)/2.0
-        self.avg_theta = (self.corr_left.theta + self.corr_left.theta)/2.0
+        self.avg_theta = -(self.corr_left.theta + self.corr_left.theta)/2.0 # Negative to apply correction in output
         self.left_delta = (-1234, -1234)
         self.right_delta = (-1234, -1234) # Difference from center of ASIC
+        self.local_x = [-1234, -1234]     # Local X center coordinates for left, right
+        self.local_y = [-1234, -1234]     # Local Y center coordinates for left, right
+        self.rot_x = [-1234, -1234]       # Rotated local X center coordinates for left, right
+        self.rot_y = [-1234, -1234]       # Rotated local Y center coordinates for left, right
+        self.ADDED_PIXELS = 130           # Pixels after center expansion
+        self.PIXEL_SHIFT = 3              # Pixels added during shift
 
     ## Compute difference between peak center and ASIC center
     #
@@ -57,6 +63,31 @@ class Submodule:
     def calc_delta(self, left_ctr, right_ctr):
         self.left_delta = (self.corr_left.center[0]-left_ctr[0], self.corr_left.center[1]-left_ctr[1])
         self.right_delta = (self.corr_right.center[0]-right_ctr[0], self.corr_right.center[1]-right_ctr[1])
+
+
+    ## Compute the local co-ordinates of centers and the rotated variants thereof
+    # @param asic_height The height of the ASIC
+    # @param asic_width The width of the ASIC
+    def calc_centers(self, asic_height, asic_width):
+        self.ASIC_HEIGHT = asic_height
+        self.ASIC_WIDTH = asic_width
+
+        self.local_x[0] = self.left_delta[1] + asic_width/2
+        self.local_y[0] = self.left_delta[0] + asic_height/2
+
+        self.local_x[1] = self.right_delta[1] + asic_width/2 + self.ADDED_PIXELS
+        self.local_y[1] = self.right_delta[0] + asic_height/2
+                     
+        full_width = asic_width*2 + self.PIXEL_SHIFT
+        full_center_x = full_width/2.0;
+        full_center_y = float(asic_height/2);
+
+        for ctr_idx in range(2):
+            x = self.local_x[ctr_idx] - full_center_x
+            y = self.local_y[ctr_idx] - full_center_y
+
+            self.rot_x[ctr_idx] = x * math.cos(self.avg_theta) - y * math.sin(self.avg_theta) + full_center_x
+            self.rot_y[ctr_idx] = x * math.sin(self.avg_theta) + y * math.cos(self.avg_theta) + full_center_y
         
 ## Generates a square grid of points
 #
@@ -248,9 +279,10 @@ class Peak_Image:
     #  @return Always returns True
     def set_asic(self, row, col):
         asic_com = self.com_in_asic((row, col)) # Create a list of centers of mass
-        print("Raw ASIC COM")
-        print(len(asic_com))
-        print(asic_com)
+        # -=-= DEBUGGING
+        #print("Raw ASIC COM")
+        #print(len(asic_com))
+        #print(asic_com)
         # Compute the center point of the grid to place the generated grid
         avg_row = 0
         avg_col = 0
@@ -262,10 +294,12 @@ class Peak_Image:
         avg_row = avg_row / point_count
         avg_col = avg_col / point_count
 
-        print("Nominal center: {}, {}".format(avg_row, avg_col))
+        # -=-= DEBUGGING
+        #print("Nominal center: {}, {}".format(avg_row, avg_col))
         # Find the actual starting position
         center_pos_a = self.nearest_com_point((avg_row, avg_col), asic_com)
-        print("Actual center: {}, {}".format(center_pos_a[0], center_pos_a[1]))
+        # -=-= DEBUGGING
+        #print("Actual center: {}, {}".format(center_pos_a[0], center_pos_a[1]))
 
         y_grid_center = row*self.ASIC_HEIGHT + self.ASIC_HEIGHT/2
         x_grid_center = col*self.ASIC_WIDTH + self.ASIC_WIDTH/2
@@ -295,7 +329,8 @@ class Peak_Image:
             for col_idx in range(self.LENGTH):
                 curr_com_point = self.nearest_com_point(curr_iter_point, asic_com); # Compute the nearest
                 self.asic_com.append(curr_com_point) # Add to the list
-                print(curr_com_point)
+                # -=-= DEBUGGING
+                #print(curr_com_point)
                 curr_iter_point = (curr_com_point[0], curr_com_point[1]+self.DELTA); # Walk right one point
             # To prepare for the next row
             curr_iter_point = (row_start_point[0]+self.DELTA, row_start_point[1]) # Go to the start of the row, then walk down one point
@@ -317,12 +352,14 @@ class Peak_Image:
 
         # Evaluate distance**2 for each point in generated grid to its match in the mask
         total_dist = 0.0
-        print("##############")
-        print(len(curr_grid))
+        # -=-= DEBUGGING
+        #print("##############")
+        #print(len(curr_grid))
         for curr_idx in range(len(curr_grid)):
             curr_point = curr_grid[curr_idx]
             curr_com = self.asic_com[curr_idx]
-            print("{},{}".format(curr_point, curr_com))
+            # -=-= DEBUGGING
+            #print("{},{}".format(curr_point, curr_com))
             min_dist = self.point_dist_sq(curr_point, curr_com)
             total_dist += math.sqrt(min_dist)
 
@@ -359,6 +396,10 @@ class Peak_Image:
 
         return total_dist
 
+# Set some of the geometric parameters
+delta_x_geo = [-(19.98/2 + 19.62) , (19.98/2)] # Distances in millimeters
+delta_y_geo = [-(22 + 23.6/2.0), -(23.6/2.0), (23.6/2.0), (22 + 23.6/2.0)] # Distances in millimeters
+    
 # The path of the peak-detected image
 maskPath = "F_forgeocal.tiff"
 
@@ -415,12 +456,16 @@ my_grid = gen_grid(9, 11, 1, 0, offset=(448,192))
 # Now try the minimization
 geocal_img.set_asic(3,0)
 res1 = minimize(geocal_img.calc_err, [1.0, 0, 448, 64], method='nelder-mead')
-print(res1.x)
+
+# -=-= DEBUGGING
+#print(res1.x)
 res1_x = res1.x
 my_grid = gen_grid(9, 11, res1_x[0], res1_x[1], offset=(res1_x[2], res1_x[3]))
 
-print("CoM points:")
-print(geocal_img.asic_com)
+
+# -=-= DEBUGGING
+#print("CoM points:")
+#print(geocal_img.asic_com)
 
 # Try iterating over every asic
 full_grid = [];  # A list of all found peaks over the full array
@@ -439,15 +484,58 @@ for asic_row in range(4):
         asic_grid.append(my_grid)
 
 
+sm_list = []
 for sm_idx in range(8):
     curr_submodule = Submodule(asic_fit_info[sm_idx*2], asic_fit_info[sm_idx*2+1])
-    asic_row = sm_idx / 2
+    asic_row = int(sm_idx / 2)
     asic_col = (sm_idx % 2) * 2;
-    curr_submodule.calc_delta((asic_row*ASIC_HEIGHT+ASIC_HEIGHT/2, asic_col*ASIC_WIDTH+ASIC_WIDTH/2), (ASIC_HEIGHT*asic_row+ASIC_HEIGHT/2, ASIC_WIDTH*(asic_col+1)+ASIC_WIDTH/2))
+    sm_row = int(sm_idx /2)
+    sm_col = sm_idx % 2
+    nom_ctr_y =  asic_row * ASIC_HEIGHT + int(ASIC_HEIGHT/2); # Half-way down an ASIC
+    nom_ctr_x_left = asic_col * ASIC_WIDTH + int(ASIC_WIDTH/2); # 2 ASICs across per submodule, plus half-way across an ASIC
+    nom_ctr_x_right = nom_ctr_x_left + ASIC_WIDTH;             # One ASIC to the right of the of the one just calculated
+    curr_submodule.calc_delta((nom_ctr_y, nom_ctr_x_left), (nom_ctr_y, nom_ctr_x_right))
+    curr_submodule.calc_centers(ASIC_HEIGHT, ASIC_WIDTH)
+    sm_list.append(curr_submodule)
     print("Submodule: {}".format(sm_idx))
+    print("ASIC Selection: {}".format((asic_row, asic_col)))
+    print("Nominal centers: Left {}\tRight: {}".format((nom_ctr_y, nom_ctr_x_left), (nom_ctr_y, nom_ctr_x_right)))
     print("ASIC Centers: Left: {}\tRight: {}".format(curr_submodule.corr_left.center, curr_submodule.corr_right.center))
     print("Center deltas: Left: {}\tRight: {}".format(curr_submodule.left_delta, curr_submodule.right_delta))
-    
+    print("Rotated local centers: Left: {}\tRight: {}".format((curr_submodule.rot_y[0], curr_submodule.rot_x[0]),(curr_submodule.rot_y[1], curr_submodule.rot_x[1])))
+
+geo_offset_x = 9999             # Final result Much bigger than a full image for subtraction later
+geo_offset_y = 9999             # Ibid
+geoparams_filename = "geocal_python.txt"
+geoparams_file = open(geoparams_filename, "w")
+for pass_idx in range(2):
+    for submodule_idx in range(8):
+        sm_row = int(submodule_idx / 2)
+        sm_col = int(submodule_idx % 2)
+        asic_idx = int(submodule_idx * 2); # Two ASICs per submodule; grab the left ASIC
+        pixel_size = 0.150;     # Pixel size in mm
+        curr_sm = sm_list[submodule_idx]
+        avg_mag = curr_sm.avg_mag
+        avg_theta = curr_sm.avg_theta
+
+        cx = avg_mag * (delta_x_geo[sm_col]) / pixel_size  - (curr_sm.rot_x[0] - ASIC_WIDTH/2);
+        cy = avg_mag * (delta_y_geo[sm_row]) / pixel_size  - (curr_sm.rot_y[0] - ASIC_HEIGHT/2);
+        gx = cx - ASIC_WIDTH/2
+        gy = cy - ASIC_HEIGHT/2
+
+        if (pass_idx == 0):
+            if (gx < geo_offset_x):
+                geo_offset_x = gx
+            if (gy < geo_offset_y):
+                geo_offset_y = gy
+        else:
+            gx = gx - geo_offset_x
+            gy = gy - geo_offset_y
+            correction_string = "{:d}, {:d}, {}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:d}".format(submodule_idx, 160, "1A", avg_theta * 57.295, gx, gy, avg_mag, 1.2345, 0, 0)
+            print(correction_string)
+            geoparams_file.write(correction_string + "\n")
+        
+geoparams_file.close()
 for point in full_grid:
     if (point[0] < 0) or (point[0] >= 512) or (point[1] < 0) or (point[1] >= 512):
         continue
