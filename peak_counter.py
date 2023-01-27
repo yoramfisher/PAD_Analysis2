@@ -31,6 +31,7 @@ class AsicCorrections:
         self.scale = params[2]
         self.theta = params[3]
         self.center = (params[4], params[5])
+        self.sq_err = 0; # Error in the fitting
 
     ## Gets the grid fit parameters as a list
     def get_fit_list(self):
@@ -45,8 +46,9 @@ class Submodule:
     def __init__(self, asic_left, asic_right):
         self.corr_left = copy.deepcopy(asic_left)
         self.corr_right = copy.deepcopy(asic_right)
-        self.avg_mag = (self.corr_left.scale + self.corr_left.scale)/2.0
-        self.avg_theta = -(self.corr_left.theta + self.corr_left.theta)/2.0 # Negative to apply correction in output
+        self.total_err = abs(self.corr_left.sq_err) + abs(self.corr_right.sq_err)
+        self.avg_mag = (self.corr_left.scale + self.corr_right.scale)/2.0
+        self.avg_theta = -(self.corr_left.theta + self.corr_right.theta)/2.0 # Negative to apply correction in output
         self.left_delta = (-1234, -1234)
         self.right_delta = (-1234, -1234) # Difference from center of ASIC
         self.local_x = [-1234, -1234]     # Local X center coordinates for left, right
@@ -476,9 +478,11 @@ for asic_row in range(4):
     for asic_col in range(4):
         geocal_img.set_asic(asic_row, asic_col)
         res1 = minimize(geocal_img.calc_err, [1.0, 0, asic_row*128.0 + 0.5*128, asic_col*128.0+0.5*128], method='nelder-mead')
+        #print(res1)
         res1_x = res1.x
         my_grid = gen_grid(9, 11, res1_x[0], res1_x[1], offset=(res1_x[2], res1_x[3]))
         curr_correction = AsicCorrections([9, 11, res1_x[0], res1_x[1], res1_x[2], res1_x[3]]);
+        curr_correction.sq_err = res1.fun
         asic_fit_info.append(curr_correction)
         full_grid.extend(my_grid)
         asic_grid.append(my_grid)
@@ -523,7 +527,11 @@ for pass_idx in range(2):
         gx = cx - ASIC_WIDTH/2
         gy = cy - ASIC_HEIGHT/2
 
+        cxr = avg_mag * (delta_x_geo[sm_col]) / pixel_size  - (curr_sm.rot_x[1] - ASIC_WIDTH/2);
+        cyr = avg_mag * (delta_y_geo[sm_row]) / pixel_size  - (curr_sm.rot_y[1] - ASIC_HEIGHT/2);
         if (pass_idx == 0):
+            #-=-= DEBUGGING
+            print('Centers: Left: ({:8.3f}, {:8.3f}) Right: ({:8.3f}, {:8.3f})'.format(cy,cx,cyr,cxr))
             if (gx < geo_offset_x):
                 geo_offset_x = gx
             if (gy < geo_offset_y):
@@ -531,7 +539,7 @@ for pass_idx in range(2):
         else:
             gx = gx - geo_offset_x
             gy = gy - geo_offset_y
-            correction_string = "{:d}, {:d}, {}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:d}".format(submodule_idx, 160, "1A", avg_theta * 57.295, gx, gy, avg_mag, 1.2345, 0, 0)
+            correction_string = "{:d}, {:d}, {}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:d}".format(submodule_idx, 160, "1A", avg_theta * 57.295, gx, gy, avg_mag, curr_sm.total_err, 0, 0)
             print(correction_string)
             geoparams_file.write(correction_string + "\n")
         
@@ -541,8 +549,13 @@ for point in full_grid:
         continue
     geocal_img.peak_img[int(point[0]),int(point[1])] = 200
 
-plt.imshow(geocal_img.peak_img)
-plt.show()
+print("Geocal Parameters")
+for asic_idx in range(16):
+    sm_num = int(asic_idx/2)
+    print("{:3d} {:3d} Angle: {:5.3f} Mag: {:5.3f} Err: {:6.3f}".format(sm_num, asic_idx, asic_fit_info[asic_idx].theta * 180/3.141592, asic_fit_info[asic_idx].scale, asic_fit_info[asic_idx].sq_err))
+    
+#plt.imshow(geocal_img.peak_img)
+#plt.show()
 
 
                                
