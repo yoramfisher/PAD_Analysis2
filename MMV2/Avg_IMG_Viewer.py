@@ -26,10 +26,10 @@ FFImage = 0 # set to 0 if dont want to FF
 
 # backFile = file_select("Background File")
 # foreFile = file_select("Foreground File")
-# backFile = "/Users/benjaminmartin/Downloads/germanate_stills_dark_100us_run29_00000.raw"
-# foreFile = "/Users/benjaminmartin/Downloads/germanate_stills_100pct_100us_run17_00000.raw"
-foreFile = "/Users/benjaminmartin/Downloads/germanate_stills_100pct_run5_00000.raw"
-backFile = "/Users/benjaminmartin/Downloads/germanate_stills_dark_run16_00000.raw"
+backFile = "/Users/benjaminmartin/Downloads/germanate_stills_dark_100us_run29_00000.raw"
+foreFile = "/Users/benjaminmartin/Downloads/germanate_stills_100pct_100us_run17_00000.raw"
+#foreFile = "/Users/benjaminmartin/Downloads/germanate_stills_100pct_run5_00000.raw"
+#backFile = "/Users/benjaminmartin/Downloads/germanate_stills_dark_run16_00000.raw"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
@@ -48,8 +48,9 @@ else: ffCorect = 1
 ##################################
 #Adjust for clipping
 ##################################
-clipHigh = 1e3
+clipHigh = 1e5
 clipLow = 0
+PhConv = 1/30
 #read all the image files
 for fIdex in range(numImagesB):
    payloadB = BML.mmFrame(backImage)
@@ -62,7 +63,7 @@ for fIdex in range(numImagesF):
    foreStack[:,:] += np.resize(payload[4],[512,512])
 
 avgFore = foreStack/(numImagesF)
-plotData = GC.GeoCor(avgFore-avgBack) * ffCorect
+plotData = GC.GeoCor(avgFore-avgBack) * ffCorect * PhConv
 plotDataClip = np.clip(plotData, clipLow, clipHigh)
 
 #################
