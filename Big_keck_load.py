@@ -22,6 +22,8 @@ def keckFrame(dataFile):
     #     print(hex(val))
     frameNum = frameMeta[1]
     capNum = int(frameMeta[6]>>24)&0xf
+    integTime = frameMeta[4]
+    interTime = frameMeta[5]
     #print(capNum)
 
     dataFile.read(256-(16+16+16+41)) #read remainder of header bites
@@ -29,7 +31,7 @@ def keckFrame(dataFile):
     dt = np.dtype('int16')
     data = np.fromfile(dataFile, count = (lengthParms[1] * lengthParms[2]), dtype = dt)
     dataFile.read(768) #read footer bites 
-    return frameParms, lengthParms, frameMeta, capNum, data, frameNum
+    return frameParms, lengthParms, frameMeta, capNum, data, frameNum, integTime, interTime
 
 
 # Frame1 = keckFrame(imageData)
