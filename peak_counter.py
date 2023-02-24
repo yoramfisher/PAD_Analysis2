@@ -407,6 +407,8 @@ maskPath = "F_forgeocal.tiff"
 
 # Read in the image
 data = imageio.imread(maskPath)
+#-=-= Changed file
+data = imageio.imread("grid_pattern.png")
 
 print("Image Shape: {}".format(data.shape))
 print("Image Type: {}".format(data.dtype))
@@ -539,7 +541,7 @@ for pass_idx in range(2):
         else:
             gx = gx - geo_offset_x
             gy = gy - geo_offset_y
-            correction_string = "{:d}, {:d}, {}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:d}".format(submodule_idx, 160, "1A", avg_theta * 57.295, gx, gy, avg_mag, curr_sm.total_err, 0, 0)
+            correction_string = "{:d}, {:d}, {}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:8.3f}, {:d}".format(submodule_idx, 160, "1A", avg_theta * 57.295, gx, gy, avg_mag, curr_sm.total_err, 0, 0)
             print(correction_string)
             geoparams_file.write(correction_string + "\n")
         
