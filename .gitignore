@@ -1,6 +1,7 @@
 
 *.raw
 *.pyc
+*.*~
 <<<<<<< HEAD
 *.csv
 *.pickle

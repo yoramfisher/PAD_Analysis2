@@ -1,6 +1,6 @@
 clear
 
-input_filename = 'avg_image_8caps.raw';
+input_filename = 'avg_image_bgsub_8caps.raw';
 input_file = fopen(input_filename, 'rb');
 
 num_frames = 8;
@@ -34,7 +34,7 @@ for frame_idx = 1:num_frames
   endfor
 endfor
 
-output_filename = 'flatfield.raw';
+output_filename = 'dcs2_flatfield.raw';
 output_file = fopen(output_filename, 'wb');
 
 for frame_idx = 1:num_frames
