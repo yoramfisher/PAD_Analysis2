@@ -28,6 +28,7 @@ function [img_stack, num_frames] = read_xpad_image(filename, bpp, offset, gap, w
 
     if nread != height*width    # Incomplete read -- assume finish
       data_pending = 0;
+      fclose(img_file);
       return                    # I guess we're done; maybe break vs return?
     endif
       
