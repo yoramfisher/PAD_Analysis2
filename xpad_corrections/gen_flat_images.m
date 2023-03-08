@@ -39,6 +39,14 @@ for cap_idx = 1:num_caps
   endfor
 endfor
 
+## Now set low-gain pixels
+num_low_pixels = 0.1*(image_width*image_height);
+for pixel_idx = 1:num_low_pixels
+  rand_x = floor(rand(1,1)*image_width)+1;
+  rand_y = floor(rand(1,1)*image_height)+1;
+  pixel_gains(rand_y, rand_x, :) = pixel_gains(rand_y, rand_x, :)/800.0;
+endfor
+
 ## With the gains generated, the dark and flat images can be generated
 
 ## First generate the base frames
