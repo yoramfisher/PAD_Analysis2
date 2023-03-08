@@ -21,16 +21,16 @@ clear dark_raw
 disp('Averaged dark image')
 
 ## Now repeat for the bright image
-[bright_raw, num_bright_frames] = read_xpad_iamge(bright_filename, 16, 0, 0, image_width, image_height);
+[bright_raw, num_bright_frames] = read_xpad_image(bright_filename, 16, 0, 0, image_width, image_height);
 disp('Loaded bright image')
 
 ## With the bright image loaded, we can average the values per-cap
-bright_image = avg_caps(dark_raw, num_caps);
+bright_image = avg_caps(bright_raw, num_caps);
 clear bright_raw
 disp('Averaged bright image')
 
 ## Now do the background subtraction
-bgsub_image = bright_image-dark_image;
+bg_sub_image = bright_image-dark_image;
 disp('Completed background subtraction')
 
 ## We now need to NaN out the bad pixels.  These are contained in two PGM files
@@ -52,3 +52,22 @@ for cap_idx = 1:num_caps
   disp('Masked bad pixels for cap ')
   cap_idx
 endfor
+
+## Now compute the flatfield corrections
+flat_raster = zeros(image_height, image_width, num_caps);
+
+for cap_idx = 1:num_caps
+  curr_frame = bg_sub_image(:,:,cap_idx);
+  flat_raster(:,:,cap_idx) = calc_flat_asic(curr_frame, 0.001);
+endfor
+
+ff_filename = 'flatfield.raw';
+ff_file = fopen(ff_filename, 'wb');
+
+for cap_idx = 1:num_caps
+  curr_frame = flat_raster(:,:,cap_idx)';
+  fwrite(ff_file, curr_frame, "double", 0, "l");
+endfor
+
+fclose(ff_file);
+

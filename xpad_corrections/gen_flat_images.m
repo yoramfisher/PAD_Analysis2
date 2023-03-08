@@ -50,7 +50,7 @@ for frame_idx = 1:(num_caps*num_frames)
 endfor
 
 subplot(2,1,1)
-imagesc(dark_image(:,:,32))
+imagesc(dark_image(:,:,3))
 subplot(2,1,2)
 imagesc(dark_image(:,:,32)-dark_image(:,:,24))
 
@@ -87,3 +87,27 @@ endfor
 
 fclose(bright_file);
 clear bright_image
+
+
+## Now create a flat file for testing the flat field correction
+## First generate the base frames of dark plus new exposure
+num_test_frames = 3;
+test_image = randp(dark_val+2*flat_val, image_height, image_width, num_caps*num_test_frames);
+
+## Then multiply by the per-cap gains
+for frame_idx = 1:(num_caps*num_test_frames)
+  cap_idx = mod(frame_idx-1, num_caps)+1; # Get the current cap
+  test_image(:,:,frame_idx) = test_image(:,:,frame_idx).*pixel_gains(:,:,cap_idx);
+endfor
+
+## Then save to disk
+test_filename = 'xpad_test.raw';
+test_file = fopen(test_filename, "wb");
+
+for frame_idx = 1:(num_test_frames*num_caps)
+  curr_slice = test_image(:,:,frame_idx)'; #Get the slice
+  fwrite(test_file, curr_slice, "uint16", 0, "b"); #-=-= XXX Write big-endian -- may need to switch later
+endfor
+
+fclose(test_file);
+clear test_image
