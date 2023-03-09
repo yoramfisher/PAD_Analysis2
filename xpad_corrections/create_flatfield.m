@@ -5,14 +5,20 @@ image_width = 512;
 image_height = 512;
 asic_width = 128;
 asic_height = 128;
+offset = 256;
+gap = 1024;
 
 asic_x_count = image_width/asic_width;
 asic_y_count = image_height/asic_height;
 
+##-=-= NOTE Dummy filenames that point to simulated data
 dark_filename = 'xpad_dark.raw'; # The image of dark current
 bright_filename = 'xpad_bright.raw'; # The flat-field image
 
-[dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, 0, 0, image_width, image_height);
+dark_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/ff_keck_test/run-back5ms/frames/back5ms_00000001.raw';
+bright_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/ff_keck_test/run-flat30KV5ms/frames/flat30KV5ms_00000001.raw';
+
+[dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded dark image')
 
 ## With the dark current image loaded, we can average the values per-cap
@@ -21,7 +27,7 @@ clear dark_raw
 disp('Averaged dark image')
 
 ## Now repeat for the bright image
-[bright_raw, num_bright_frames] = read_xpad_image(bright_filename, 16, 0, 0, image_width, image_height);
+[bright_raw, num_bright_frames] = read_xpad_image(bright_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded bright image')
 
 ## With the bright image loaded, we can average the values per-cap

@@ -18,7 +18,7 @@ function [img_stack, num_frames] = read_xpad_image(filename, bpp, offset, gap, w
     data_type = 'uint32';
   endif
 
-  curr_array = fread(img_file, [height, width], data_type, 0, 'b')'; #-=-= XXX May need to change from big-endian to little endian at some point
+  curr_array = fread(img_file, [height, width], data_type, 0, 'l')'; #-=-= XXX May need to change from big-endian to little endian at some point
   num_frames = 1;
   
   fseek(img_file, gap, SEEK_CUR);
@@ -27,7 +27,7 @@ function [img_stack, num_frames] = read_xpad_image(filename, bpp, offset, gap, w
   
   while(data_pending == 1)
     ## Read in the data
-    [curr_array, nread] = fread(img_file, [height, width], data_type, 0, 'b');
+    [curr_array, nread] = fread(img_file, [height, width], data_type, 0, 'l');
     curr_array = curr_array';
 
     if (nread != height*width) || (num_frames >= MAX_FRAMES)   # Incomplete read or maximum frame count reached -- assume finish
