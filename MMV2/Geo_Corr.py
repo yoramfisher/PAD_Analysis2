@@ -61,7 +61,7 @@ def GeoCor(frame):
         startPixY = int(pS * 128)
         for pSX in range (2):
             startPixX = int(pSX * 255)
-            valuePix = np.array((startPixY,startPixX),dtype="int16")
+            valuePix = np.array((startPixY,startPixX),dtype="int32")
             cordList.append(valuePix)
             #print (perAsicAvg)
             subCount +=1
@@ -82,9 +82,9 @@ def GeoCor(frame):
 
         # Get the current frame and rotate it
         currSub = frame[yVal:yVal+offsety,xVal:xVal+offsetx];
-        currCenter = ((offset_x+1)/2,offset_y/2);
-        rotMat = cv.getRotationMatrix2D(currCenter,modThetaDeg/180*math.pi,1,0)
-        rotFrame = cv.warpAffine(currSub rotMat, currCenter);
+        currCenter = ((offsetx+1)/2,offsety/2);
+        rotMat = cv.getRotationMatrix2D(currCenter,int(modThetaDeg[sub]/180*math.pi),1.0)
+        rotFrame = cv.warpAffine(currSub, rotMat, currCenter);
         
         #GeoCorFrame[yVal+destOSy:yVal+offsety+destOSy,xVal+destOSx:xVal+offsetx+destOSx] += frame[yVal:yVal+offsety,xVal:xVal+offsetx]
         GeoCorFrame[yVal+destOSy:yVal+offsety+destOSy,xVal+destOSx:xVal+offsetx+destOSx] += rotFrame
