@@ -48,9 +48,9 @@ else: ffCorect = 1
 ##################################
 #Adjust for clipping
 ##################################
-clipHigh = 1e5
+clipHigh = 1e6
 clipLow = 0
-PhConv = 1/30
+PhConv = 1/50
 #read all the image files
 for fIdex in range(numImagesB):
    payloadB = BML.mmFrame(backImage)
@@ -71,7 +71,7 @@ plotDataClip = np.clip(plotData, clipLow, clipHigh)
 #################
 
 avg,axs = plt.subplots(1)
-imageAvg = axs.imshow(plotDataClip, cmap = "viridis")
+imageAvg = axs.imshow(plotDataClip, cmap = "gray")
 Acbar = avg.colorbar(imageAvg, aspect=10)
 
 axs.set_title('MM Average')

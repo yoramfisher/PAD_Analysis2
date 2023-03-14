@@ -3,7 +3,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import sys
-import tkinter.filedialog as fd
+#import tkinter.filedialog as fd
 
 # ####file for debug####
 # cwd = os.getcwd()
@@ -58,7 +58,7 @@ def GeoCor(frame):
         startPixY = int(pS * 128)
         for pSX in range (2):
             startPixX = int(pSX * 255)
-            valuePix = np.array((startPixY,startPixX),dtype="int16")
+            valuePix = np.array((startPixY,startPixX),dtype="int32")
             cordList.append(valuePix)
             #print (perAsicAvg)
             subCount +=1

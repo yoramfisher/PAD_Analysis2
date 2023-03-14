@@ -22,8 +22,8 @@ FFImage = 0 # set to 0 if dont want to FF
 
 # backFile = file_select("Background File")
 # foreFile = file_select("Foreground File")
-backFile = "/Volumes/BMARTIN/set-Geod/run-b3ms/frames/b3ms_00000001.raw"
-foreFile = "/Volumes/BMARTIN/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
+backFile = "/Volumes/BMARTIN/DCS_06222022/set-HLChopper/run-back/frames/back_00000001.raw"
+foreFile = "/Volumes/BMARTIN/DCS_06222022/set-HLChopper/run-scan_TD_220/frames/scan_TD_220_00000001.raw"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 backImage = open(backFile,"rb")
@@ -42,7 +42,7 @@ else: ffCorect = 1
 ##################################
 #Adjust for clipping
 ##################################
-clipHigh = 5e3
+clipHigh = 5e2
 clipLow = 0
 #read all the image files
 for fIdex in range(numImagesB):
