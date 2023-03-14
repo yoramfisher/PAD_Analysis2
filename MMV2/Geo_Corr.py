@@ -4,6 +4,8 @@ import os
 import matplotlib.pyplot as plt
 import sys
 import tkinter.filedialog as fd
+import cv2 as cv
+import math
 
 # ####file for debug####
 # cwd = os.getcwd()
@@ -17,7 +19,8 @@ import tkinter.filedialog as fd
 # clipHigh = 1e5
 # clipLow = 0
 
-modOffSetsmm = {0:(.254,.254), 1:(1.002,.254), 2:(.254,2.922), 3:(1.002,2.922) , 4:(.254 ,6.975) , 5:(1.002 ,6.975) , 6:(.254,9.613) , 7:(1.002 ,9.613) } 
+modOffSetsmm = {0:(.254,.254), 1:(1.002,.254), 2:(.254,2.922), 3:(1.002,2.922) , 4:(.254 ,6.975) , 5:(1.002 ,6.975) , 6:(.254,9.613) , 7:(1.002 ,9.613) }
+modThetaDeg = {0:-0.230, 1:-0.275, 2:-0.172, 3:-0.156, 4:-0.255, 5:-0.245, 6:-0.183, 7:-0.117}
 
 def doublePixelAdd (image):
    #############function to split charge and add 2 columns to account for double pixels in center of module######
@@ -75,8 +78,16 @@ def GeoCor(frame):
         offsetx = 255
         offsety = 128
         destOSx = int(destList[sub][0]) 
-        destOSy = int(destList[sub][1]) 
-        GeoCorFrame[yVal+destOSy:yVal+offsety+destOSy,xVal+destOSx:xVal+offsetx+destOSx] += frame[yVal:yVal+offsety,xVal:xVal+offsetx]
+        destOSy = int(destList[sub][1])
+
+        # Get the current frame and rotate it
+        currSub = frame[yVal:yVal+offsety,xVal:xVal+offsetx];
+        currCenter = ((offset_x+1)/2,offset_y/2);
+        rotMat = cv.getRotationMatrix2D(currCenter,modThetaDeg/180*math.pi,1,0)
+        rotFrame = cv.warpAffine(currSub rotMat, currCenter);
+        
+        #GeoCorFrame[yVal+destOSy:yVal+offsety+destOSy,xVal+destOSx:xVal+offsetx+destOSx] += frame[yVal:yVal+offsety,xVal:xVal+offsetx]
+        GeoCorFrame[yVal+destOSy:yVal+offsety+destOSy,xVal+destOSx:xVal+offsetx+destOSx] += rotFrame
 
 
                 
