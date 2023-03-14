@@ -5,7 +5,8 @@ asic_height = 128;
 img_width = 512;
 img_height = 512;
 num_caps = 8;                   # Camera Parameters
-bad_asics = [0, 0, 0, 0; 0, 0, 0, 0; 0, 0, 1, 0; 1, 0, 0, 1]; # Set to 1 if the whole ASIC is bad
+#bad_asics = [0, 0, 0, 0; 0, 0, 0, 0; 0, 0, 1, 0; 1, 0, 0, 1]; # Set to 1 if the whole ASIC is bad
+bad_asics = [0, 0, 0, 0; 0, 0, 0, 0; 0, 0, 0, 0; 0, 0, 0, 0]; # Set to 1 if the whole ASIC is bad
 offset = 256;
 gap=1024;
 
@@ -19,6 +20,10 @@ prelim_bad_pixel_filename = 'blank_bad.raw';
 prelim_bad_pixel_file = fopen(prelim_bad_pixel_filename, "rb");
 
 prelim_bad_mask = fread(prelim_bad_pixel_file, [img_height, img_width], 'uint16', 0, 'b')';
+
+## FIXME Set the bad taps for image as found in ICM Notbook 20230313 p13
+prelim_bad_mask(353:384,257:384) = 1;
+prelim_bad_mask(481:512,1:128) = 1;
 
 ## Note where preliminary bad pixels are set
 prelim_bad_mask = prelim_bad_mask != 0;
@@ -35,6 +40,11 @@ dark_image_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/f
 
 ## Load in the whole stack
 [raw_dark, num_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, 512, 512);
+
+## Skip the first 9 background images
+raw_dark = raw_dark(:,:,73:num_frames);
+num_frames = num_frames-72;
+
 ## Then average over each cap
 for cap_idx = 1:num_caps
   dark_image(:,:,cap_idx) = mean(raw_dark(:,:,cap_idx:num_caps:num_frames),3);

@@ -21,6 +21,10 @@ bright_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/ff_ke
 [dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded dark image')
 
+# Skip the first 9 frames
+dark_raw = dark_raw(:,:,73:num_dark_frames);
+num_dark_frames = num_dark_frames-72;
+
 ## With the dark current image loaded, we can average the values per-cap
 dark_image = avg_caps(dark_raw, num_caps);
 clear dark_raw
