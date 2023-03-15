@@ -83,8 +83,9 @@ def GeoCor(frame):
         # Get the current frame and rotate it
         currSub = frame[yVal:yVal+offsety,xVal:xVal+offsetx];
         currCenter = ((offsetx+1)/2,offsety/2);
-        rotMat = cv.getRotationMatrix2D(currCenter,int(modThetaDeg[sub]/180*math.pi),1.0)
-        rotFrame = cv.warpAffine(currSub, rotMat, currCenter);
+        rotMat = cv.getRotationMatrix2D(currCenter,modThetaDeg[sub]/180.0*math.pi,1.0)
+        rotMat = cv.getRotationMatrix2D(currCenter,modThetaDeg[sub],1.0)
+        rotFrame = cv.warpAffine(currSub, rotMat, (offsetx,offsety));
         
         #GeoCorFrame[yVal+destOSy:yVal+offsety+destOSy,xVal+destOSx:xVal+offsetx+destOSx] += frame[yVal:yVal+offsety,xVal:xVal+offsetx]
         GeoCorFrame[yVal+destOSy:yVal+offsety+destOSy,xVal+destOSx:xVal+offsetx+destOSx] += rotFrame
