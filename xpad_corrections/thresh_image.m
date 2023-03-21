@@ -16,7 +16,7 @@ function mod_img = thresh_image(base_img, bLow, thresh, asic_width, asic_height)
         
         curr_asic = mod_img(y_start:y_end, x_start:x_end, cap_idx);
         
-        mod_img(y_start:y_end, x_start:x_end, cap_idx) = pixel_rank(curr_asic, bLow, thresh);
+        mod_img(y_start:y_end, x_start:x_end, cap_idx) = pixel_iqr_filt(curr_asic, bLow, thresh);
 
       endfor
     endfor

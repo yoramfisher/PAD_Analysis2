@@ -36,7 +36,7 @@ bright_image = zeros(img_height, img_width, num_caps);
 ## Filename of a test pattern
 dark_image_filename = 'basic_pattern.raw';
 ## Good filename
-dark_image_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/ff_keck_test/run-back5ms/frames/back5ms_00000001.raw';
+dark_image_filename = 'C:/rtsup/raid/keckpad/set-rework/run-back5ms/frames/back5ms_00000001.raw';
 
 ## Load in the whole stack
 [raw_dark, num_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, 512, 512);
@@ -65,7 +65,7 @@ dark_image = apply_bad_asic(bad_asics, asic_height, asic_width, dark_image);
 imagesc(dark_image(:,:,4))
 
 ## Threshold out the hot pixels
-hot_img = thresh_image(dark_image, 0, 0.005, asic_width, asic_height);
+hot_img = thresh_image(dark_image, 0, 1.7, asic_width, asic_height);
 
 ## Now do similar to find the dark pixels
 
@@ -73,7 +73,7 @@ hot_img = thresh_image(dark_image, 0, 0.005, asic_width, asic_height);
 ## Filename of a test pattern
 bright_image_filename = 'basic_pattern.raw';
 ## Good filename
-bright_image_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/ff_keck_test/run-flat30KV5ms/frames/flat30KV5ms_00000001.raw';
+bright_image_filename = 'C:/rtsup/raid/keckpad/set-rework/run-flat30KV5ms/frames/flat30KV5ms_00000001.raw';
 
 ## Load in the whole stack
 [raw_bright, num_frames] = read_xpad_image(bright_image_filename, 16, offset, gap, 512, 512);
@@ -95,7 +95,7 @@ endfor
 bright_image = apply_bad_asic(bad_asics, asic_height, asic_width, bright_image);
 
 ## Threshold out the hot pixels
-cold_img = thresh_image(bright_image, 1, 0.005, asic_width, asic_height);
+cold_img = thresh_image(bright_image, 1, 1.5, asic_width, asic_height);
 
 ## With the bad pixels calculated, we can collapse them to single layers for writing out
 hot_total = sum(hot_img, 3);
