@@ -14,15 +14,24 @@ function mod_img = pixel_iqr_filt(base_img, bLow, thresh)
   img_iqr = iqr(sort_line); # Extract the IQR
   q1_idx = floor(line_len*0.25)+1;
   q3_idx = floor(line_len*0.75)+1;
+  pix_thresh_prop = 0;
   
   if bLow != 0                  # Filter out low pixels
     thresh_val = sort_line(q1_idx) - thresh*img_iqr;  
+    pix_thresh_prop = max(size(find(mod_img <= thresh_val)))/max(size(curr_line));
     mod_img(find(mod_img <= thresh_val)) = NaN;
   else                        # Filter out high pixels
     thresh_val = sort_line(q3_idx) + thresh*img_iqr;
+    pix_thresh_prop = max(size(find(mod_img >= thresh_val)))/max(size(curr_line));
     mod_img(find(mod_img >= thresh_val)) = NaN;
   endif
 
+  if bLow != 0 # Filtered out low pixels
+    printf("Low pixels filtered: %f%%\n", pix_thresh_prop*100);
+  else
+    printf("High pixels filtered: %f%%\n", pix_thresh_prop*100);
+  endif
+  
   return
 endfunction
 
