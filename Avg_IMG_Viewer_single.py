@@ -19,7 +19,7 @@ def file_select(Type):
 
 # backFile = file_select("Background File")
 #foreFile = file_select("Foreground File")
-foreFile = "/Volumes/BMARTIN/set-Geod/run-f3ms/frames/f3ms_00000001.raw"
+foreFile = "/Users/benjaminmartin/Desktop/S01_CompB_04_00000001.raw"
 cwd = os.getcwd()
 foreImage = open(foreFile,"rb")
 # backImage = open(backFile,"rb")
@@ -99,18 +99,18 @@ for val in range(8):
 # #code to plot all 8 caps individually
 # ########################
 
-# # plt.imshow(plotData)
-# # # fig,axs = plt.subplots(2,4)
-# # # axs[0,0].imshow(plotData[0,:,:])
-# # # axs[0,1].imshow(plotData[1,:,:])
-# # # axs[0,2].imshow(plotData[2,:,:])
-# # # axs[0,3].imshow(plotData[3,:,:])
-# # # axs[1,0].imshow(plotData[4,:,:])
-# # # axs[1,1].imshow(plotData[5,:,:])
-# # # axs[1,2].imshow(plotData[6,:,:])
-# # # axs[1,3].imshow(plotData[7,:,:])
-# # #plt.imshow(fmb[3,:,:])
-# # plt.show()
+# plt.imshow(plotData)
+fig,axs = plt.subplots(2,4)
+axs[0,0].imshow(plotData[0,:,:])
+axs[0,1].imshow(plotData[1,:,:])
+axs[0,2].imshow(plotData[2,:,:])
+axs[0,3].imshow(plotData[3,:,:])
+axs[1,0].imshow(plotData[4,:,:])
+axs[1,1].imshow(plotData[5,:,:])
+axs[1,2].imshow(plotData[6,:,:])
+axs[1,3].imshow(plotData[7,:,:])
+# plt.imshow(fmb[3,:,:])
+plt.show()
 
 # ###################
 # #Code to plot and save one image with labels and such
