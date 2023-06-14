@@ -7,6 +7,8 @@ asic_width = 128;
 asic_height = 128;
 offset = 256;
 gap = 1024;
+num_skip_image = 9;             # The number of images at the start to skip
+num_skip_frames = num_caps * num_skip_image; # Total frames to skip
 
 asic_x_count = image_width/asic_width;
 asic_y_count = image_height/asic_height;
@@ -21,9 +23,10 @@ bright_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/ff_ke
 [dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded dark image')
 
-# Skip the first 9 frames
-dark_raw = dark_raw(:,:,73:num_dark_frames);
-num_dark_frames = num_dark_frames-72;
+# Skip the first NUM_SKIP_IMAGE images
+# Remember there are NUM_CAPS frames per image
+dark_raw = dark_raw(:,:,(num_skip_frames+1):num_dark_frames);
+num_dark_frames = num_dark_frames-num_skip_frames;
 
 ## With the dark current image loaded, we can average the values per-cap
 dark_image = avg_caps(dark_raw, num_caps);
@@ -33,6 +36,11 @@ disp('Averaged dark image')
 ## Now repeat for the bright image
 [bright_raw, num_bright_frames] = read_xpad_image(bright_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded bright image')
+
+# Skip the first NUM_SKIP_IMAGE images
+# Remember there are NUM_CAPS frames per image
+bright_raw = bright_raw(:,:,(num_skip_frames+1):num_bright_frames);
+num_bright_frames = num_bright_frames-num_skip_frames;
 
 ## With the bright image loaded, we can average the values per-cap
 bright_image = avg_caps(bright_raw, num_caps);
@@ -44,6 +52,7 @@ bg_sub_image = bright_image-dark_image;
 disp('Completed background subtraction')
 
 ## We now need to NaN out the bad pixels.  These are contained in two PGM files
+## Change the filenames here to suit.
 bad_dark_pixels = imread("dark_pixels.pgm");
 bad_hot_pixels = imread("hot_pixels.pgm");
 disp('Loaded bad pixel maps')
@@ -68,6 +77,7 @@ flat_raster = zeros(image_height, image_width, num_caps);
 
 for cap_idx = 1:num_caps
   curr_frame = bg_sub_image(:,:,cap_idx);
+  # Second parameter below is the threshold of gain deemed too low.
   flat_raster(:,:,cap_idx) = calc_flat_asic(curr_frame, 0.001);
 endfor
 
