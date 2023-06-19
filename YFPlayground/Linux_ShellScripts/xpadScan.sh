@@ -99,7 +99,7 @@ $mmcmd "startset $setname"
              
       $mmcmd "status -wait"
       # run the python analysis HERE
-      ./plotlineout.py "$setname $runname 1 1 0 0 100 16"  # SetName RunName FrameNum zASICX zASICY ROIW ROIH 
+      ./plotlineout.py "$setname $runname 1 0 0 128 16"  # SetName RunName FrameNum zASICX zASICY ROIW ROIH 
       read  # Press return for debugging
 
    done
