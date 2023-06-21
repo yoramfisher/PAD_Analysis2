@@ -3,6 +3,8 @@
 # 6/13/23 - YF - Inception
 #Long Description:
 #  TODO - more detail
+#   NOTE - this script deletes the runs from previous times so it can overwrite
+#   to the same run name.
 #  LOOP:
 #     Create a run. 
 #     Run a python script to view a lineout over some area.
@@ -18,6 +20,7 @@ nFrames=2
 integration=100; # in usec
 interframe=100; # in usec
 setname=${1:-xpadscan}  # Parameter 1 is setname  or if not specifiedf use -defaultname
+RAIDPATH="/mnt/raid/keckpad"
 
 
 #
@@ -41,22 +44,18 @@ take_background() {
 mmcmd="mmcmd"
 
 # run mmclient in script mode if not already running
-./LaunchIfNeeded.sh
+../../PAD_SH/LaunchIfNeeded.sh
 
-# warn if deleting first
-# todo: remove directories:
-# loop:
-#  rm -rf "/mnt/raid/set-$setname/"
-  
-#  rm "/home/sydor/Sydor/mmclient/out/default/Fore_$integration"
-#  rm "/home/sydor/Sydor/mmclient/out/default/Back_$integration"
+
+# TODO:warn if deleting first
+# remove directories:
+rm -r "$RAIDPATH"/set-$setname/run-run_*
+
 
 $mmcmd open 1
 $mmcmd stop
 
 sleep 1
-
-
 
 
 $mmcmd "Image_Count $nFrames"       #Set number of frames
@@ -87,7 +86,7 @@ $mmcmd "startset $setname"
 
 	# #assumes a hardware trigger
 
-   for i in {1..10}
+   for i in {1..3}
    do
       #let "bias = 900 + i * 100"
       #$mmcmd "DFPGA_DAC_OUT_VREF_BUF $bias" 
@@ -99,8 +98,8 @@ $mmcmd "startset $setname"
              
       $mmcmd "status -wait"
       # run the python analysis HERE
-      ./plotlineout.py "$setname $runname 1 0 0 128 16"  # SetName RunName FrameNum zASICX zASICY ROIW ROIH 
-      read  # Press return for debugging
+      ../plotlineout.py "$setname $runname 1 0 0 128 16"  # SetName RunName FrameNum zASICX zASICY ROIW ROIH 
+      ## read  # Press return for debugging
 
    done
         

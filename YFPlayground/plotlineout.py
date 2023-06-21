@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python3
 # File: plotlineout.py
 # Description - Read a raw KECK file from disk, and plot a hor. lineout.
 #
@@ -6,9 +6,12 @@
 # v 0.1 6/13/23 YF - Inception
 #
 # Expected parameters
-#    setname runname FrameNum zASICX zASICY ROIW ROIH 
+#    setname runname FrameNum zASICX zASICY nTap ROIW ROIH 
 # where, 
-#    zASICX and zASICY are zero index based 0-3 for the ASIC coordinate. ie 0 0 is top-left, 3 3 is bottom-right
+#    zASICX and zASICY are zero index based 0-3 for the ASIC coordinate. 
+#    ie 0 0 is top-left, 3 3 is bottom-right
+#    nTap is 1-based tap (1-8)
+#    ROIW, ROIH is width and height, typically will be 128 16
 # typically will be called from shell script (see xpadScan.sh)
 
 import numpy as np
@@ -26,12 +29,11 @@ backStack = []
 numImagesF=0
 numImagesB=0
 
-
 def go( params ):
-    global foreImage, backimage, foreStack,backStack, numImagesF, numImagesB
+    global foreImage, backImage, foreStack,backStack, numImagesF, numImagesB
 
-    if len(params) < 7:
-        print(" Usage: ~ setname runname FrameNum zASICX zASICY ROIW ROIH")
+    if len(params) < 8:
+        print(" Usage: ~ setname runname FrameNum nTap zASICX zASICY ROIW ROIH")
         exit(0)
         
     setname = params[0]
@@ -39,7 +41,7 @@ def go( params ):
     foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
     
     # todo - hardcode a back file - skip for now - #WIP#
-    backFile = '/mnt/raid/keckpad/set-HeadRework/run-dark50ns_1/frames/dark50ns_1_00000001.raw'
+    backFile = f'/mnt/raid/keckpad/set-{setname}/run-back/frames/run_1_00000001.raw' 
     foreImage = open(foreFile,"rb")
     backImage = open(backFile,"rb")
     numImagesF = int(os.path.getsize(foreFile)/(1024+512*512*2))
@@ -51,15 +53,18 @@ def go( params ):
     cap = params[2] % 8
     zSX = params[3]
     zSY = params[4]
-    W   = params[5]
-    H   = params[6]
+    nTap = params[5]
+    W   = params[6]
+    H   = params[7]
 
     
-    plotROI( cap, zSX, zSY, W, H )
+    plotROI( cap, zSX, zSY, nTap, W, H )
  
-def plotROI(cap, zSX, zSY, W, H): 
+def plotROI(cap, zSX, zSY, nTap, W, H): 
     """ cap is cap 0-7
         zSX and zSY are 0-3 ASIC coordinate
+        nTap is 1-8
+        W,H are in pixels typ 128,16
     """
     global foreImage, backImage ,foreStack,backStack, numImagesF, numImagesB
     ##################################
@@ -87,12 +92,13 @@ def plotROI(cap, zSX, zSY, W, H):
     
     PerCapImage = DiffStack[:,cap,:,:]
     
-    startPixY = zSY * 128
+    startPixY = zSY * 128 + (nTap-1) * 16
     endPixY = startPixY + H
     startPixX = zSX * 128
     endPixX = startPixX + W
     # frame 0 hardcoded for now
     plt.imshow( PerCapImage[0, startPixY:endPixY, startPixX:endPixX]) # might be flipped?? #WIP#
+    #plt.show()
  
    
 
@@ -107,6 +113,7 @@ if __name__ == "__main__":
     parameters = sys.argv[1:]
     # F! doesnt work
     # hardcode instead
-    # setname runname FrameNum zASICX zASICY ROIW ROIH 
-    parameters=['xpadscan','run_1', 0, 0, 0, 128, 16]
+    # setname runname FrameNum zASICX zASICY   nTap  ROIW ROIH 
+    parameters=['xpadscan','run_1', 1, 0, 0,   1,    128, 16]
     go( parameters )
+    input("Press Enter to continue...")
