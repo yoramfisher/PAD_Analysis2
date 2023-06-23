@@ -74,20 +74,19 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     clipLow = 0
     #read all the image files
     for fIdex in range(numImagesB):
-        payloadB = BKL.keckFrame(backImage)
+        (mdB,dataB) = BKL.keckFrame(backImage)
         #  return frameParms, lengthParms, frameMeta, capNum, data, frameNum, integTime, interTime
-        backStack[payloadB[5]-1,(payloadB[3]-1)%8,:,:] += np.resize(payloadB[4],[512,512])
+        backStack[ mdB.frameNum-1,(mdB.capNum-1)%8,:,:] += np.resize(dataB,[512,512])
 
     avgBack = backStack/(numImagesB/8.0)
 
     for fIdex in range(numImagesF):
-        payload = BKL.keckFrame(foreImage)
-        foreStack[payload[5]-1,(payload[3]-1)%8,:,:] += np.resize(payload[4],[512,512])
+        (mdF,dataF) = BKL.keckFrame(foreImage)
+        foreStack[mdF.frameNum-1,(mdF.capNum-1)%8,:,:] += np.resize(dataF,[512,512])
 
     #standDev = np.zeros((8,512,512),dtype=np.double)
     DiffStack = foreStack-backStack
     #asicSDs = np.zeros((8,16),dtype=np.double)
-
 
     
     PerCapImage = DiffStack[:,cap,:,:]
@@ -98,7 +97,7 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     endPixX = startPixX + W
     # frame 0 hardcoded for now
     plt.imshow( PerCapImage[0, startPixY:endPixY, startPixX:endPixX]) # might be flipped?? #WIP#
-    #plt.show()
+    plt.show()
  
    
 
