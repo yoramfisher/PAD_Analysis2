@@ -20,6 +20,7 @@ import os
 import matplotlib.pyplot as plt
 import sys
 import tkinter.filedialog as fd
+import subprocess
 
 #
 # Define some globals
@@ -28,14 +29,31 @@ foreStack = []
 backStack = []
 numImagesF=0
 numImagesB=0
+nFrames = 10
+
+
+def run_cmd( cmd_string ):
+    global nFrames
+
+    # Run the shell command
+    result = subprocess.run("mmcmd " + cmd_string, shell=True, capture_output=True, text=True)
+
+    # Print the command output #DEBUG
+    print(result.stdout)   
+    
 
 def go( params ):
-    global foreImage, backImage, foreStack,backStack, numImagesF, numImagesB
+    global foreImage, backImage, foreStack,backStack, numImagesF, numImagesB, nFrames
 
     if len(params) < 8:
         print(" Usage: ~ setname runname FrameNum nTap zASICX zASICY ROIW ROIH")
         exit(0)
-        
+
+    # Can I run a mmcmd command via the shell directly here?
+    run_cmd( f"Image_Count {nFrames}" )   #Set number of frames
+
+    exit() # debug
+
     setname = params[0]
     runname = params[1]
     foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
