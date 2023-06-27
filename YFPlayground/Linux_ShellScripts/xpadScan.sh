@@ -59,9 +59,9 @@ sleep 1
 
 
 $mmcmd "Image_Count $nFrames"       #Set number of frames
-$mmcmd "Interframe_Usec $interframe"  
+$ger mmcmd "Interframe_Usec $interframe"  
 $mmcmd "Integration_Usec $integration"
-$mmcmd "SW_Trig"
+$mmcmd "SW_Trigger 1"
 
 
 
