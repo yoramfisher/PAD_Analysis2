@@ -30,16 +30,24 @@ backStack = []
 numImagesF=0
 numImagesB=0
 nFrames = 10
+integrationTime = 50
+interframeTime = 100
 
 
 def run_cmd( cmd_string ):
     global nFrames
+    res = 0
 
     # Run the shell command
     result = subprocess.run("mmcmd " + cmd_string, shell=True, capture_output=True, text=True)
 
-    # Print the command output #DEBUG
-    print(result.stdout)   
+    if len(result.stderr) >0:
+        print("E! " + result.stderr)
+        res = -1
+    if len(result.stdout)>0:
+        # Print the command output #DEBUG
+        print("O: "+result.stdout)   
+    return res # 0 = success, -1 = error
     
 
 def go( params ):
@@ -49,8 +57,30 @@ def go( params ):
         print(" Usage: ~ setname runname FrameNum nTap zASICX zASICY ROIW ROIH")
         exit(0)
 
-    # Can I run a mmcmd command via the shell directly here?
-    run_cmd( f"Image_Count {nFrames}" )   #Set number of frames
+    setname = params[0]
+    ##
+    res = True
+    list_commands = [
+        f"Image_Count {nFrames}",
+        f"Interframe_Nsec {interframeTime}",
+        f"Integration_Nsec {integrationTime}",
+        f"Integration_Nsec {integrationTime}",
+        f"SW_Trigger 1",
+        f"startset {setname}"
+        ]
+ 
+    
+    for c in list_commands:
+        res = run_cmd( c  )   #Set number of frames
+        if res:
+            break
+    for i in range(1, 3 + 1):        
+        runname=f"run_{i}"        
+        res = run_cmd( f"startrun {runname}"  )   
+        if res:
+            break
+        run_cmd( f"status -wait" )
+
 
     exit() # debug
 
