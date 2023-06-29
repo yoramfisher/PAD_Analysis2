@@ -33,3 +33,15 @@ def convertSensorVoltage(raw):
         val = val - 4096
 
     return ( (val / 4096.0) + 0.5) * 3.01 # ; // Per Sect 4.3.7.1, spec v1.4
+
+
+#// Special conversion - Sensor ADC Current
+#double StParameter::convertSensorCurrent(uint32_t raw) const
+#{
+#    double val = convertSensorVoltage(raw);
+#    return val / 2.09;         // Per MM Keck PAD FPGA Information v0.2
+#}
+
+def convertSensorCurrent(raw):
+    dval = convertSensorVoltage(raw)
+    return dval / 2.09

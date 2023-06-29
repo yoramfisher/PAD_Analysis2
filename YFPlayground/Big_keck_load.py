@@ -11,6 +11,12 @@ import matplotlib.pyplot as plt
 import struct
 import xpad_utils as xutil
 
+
+# GLOBAL FLAGS
+PRINT_METADATA = 1
+#
+
+
 class Metadata:
     __slots__ = ["frameParms", "lengthParms", "frameMeta", "capNum", "frameNum",
                  "integTime", "interTime", "sensorTemp"]
@@ -60,7 +66,7 @@ def keckFrame(dataFile):
 
     
     frameNum = frameMeta[1]
-    capNum = int(frameMeta[6]>>24)&0xf
+    capNum = int(frameMeta[6]>>24) & 0xf
     integTime = frameMeta[4]
     interTime = frameMeta[5]
     #print(capNum)
@@ -86,14 +92,23 @@ def keckFrame(dataFile):
     vdda_voltage = [footerB[5 + i * 12] for i in range(8)]
     sensor_temp = [footerB[8 + i * 12] for i in range(8)]   # Sensor Temp
 
-    test = [ xutil.convertSensorVoltage( x ) for x in v_iss_buf_pix  ]
-    test = [ xutil.convertSensorVoltage( x ) for x in vdda_voltage  ]
-    st = [ xutil.convertSensorTemp( x ) for x in sensor_temp  ]
+    cv_iss_buf_pix = [ "{:10.4f}".format(xutil.convertSensorCurrent( x )) for x in v_iss_buf_pix  ]
+    cv_iss_ab      = [ "{:10.4f}".format(xutil.convertSensorCurrent( x )) for x in v_iss_ab  ]
+    cvdda_current  = [ "{:10.4f}".format(xutil.convertSensorCurrent( x )) for x in vdda_current  ]
+    cvdda_volts    = [ "{:10.4f}".format(xutil.convertSensorVoltage( x )) for x in vdda_voltage  ]
+    csensor_temp   = [ "{:10.4f}".format(xutil.convertSensorTemp( x )) for x in sensor_temp  ]
     #debug
-    print(st) # Sensor Temperatures in Celcius
+    if PRINT_METADATA:
+        # Create a new list of formatted strings with 4 digits of precision
+        print(f"iss_buf_pix {', '.join(cv_iss_buf_pix)}" )
+        print(f"iss_ab      {', '.join(cv_iss_ab)}" )
+        print(f"vdda_curr   {', '.join(cvdda_current)}" )
+        print(f"vdda_V      {', '.join(cvdda_volts )}" )
+        print(f"Temper.     {', '.join(csensor_temp )}" )
+
 
     metadata= Metadata(frameParms, lengthParms, frameMeta, capNum, 
-                 frameNum, integTime, interTime, st )
+                 frameNum, integTime, interTime, csensor_temp )
 
 
     # return a Tuple of metadata structure and the Array Data             
