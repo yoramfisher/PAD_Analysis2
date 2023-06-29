@@ -4,6 +4,7 @@
 #
 # History
 # v 0.1 6/13/23 YF - Inception
+# v 0.2 6/29/23 YF - Shift to not using any bash scripts. Instead commands run directly from Python.
 #
 # Expected parameters
 #    setname runname FrameNum zASICX zASICY nTap ROIW ROIH 
@@ -19,39 +20,26 @@ import Big_keck_load as BKL
 import os
 import matplotlib.pyplot as plt
 import sys
-import tkinter.filedialog as fd
-import subprocess
+import tkinter as tk
+import xpad_utils as xd
 
 #
 # Define some globals
 #
 foreStack = []
 backStack = []
-numImagesF=0
-numImagesB=0
+fore = None
+back = None
+
 nFrames = 10
 integrationTime = 50
 interframeTime = 100
+NRUNS = 3
 
-
-def run_cmd( cmd_string ):
-    global nFrames
-    res = 0
-
-    # Run the shell command
-    result = subprocess.run("mmcmd " + cmd_string, shell=True, capture_output=True, text=True)
-
-    if len(result.stderr) >0:
-        print("E! " + result.stderr)
-        res = -1
-    if len(result.stdout)>0:
-        # Print the command output #DEBUG
-        print("O: "+result.stdout)   
-    return res # 0 = success, -1 = error
     
 
 def go( params ):
-    global foreImage, backImage, foreStack,backStack, numImagesF, numImagesB, nFrames
+    global  foreStack,backStack, fore, back
 
     if len(params) < 8:
         print(" Usage: ~ setname runname FrameNum nTap zASICX zASICY ROIW ROIH")
@@ -59,6 +47,7 @@ def go( params ):
 
     setname = params[0]
     ##
+    # TODO: somehow optionally run YON.mcmd once if needed... ?
     res = True
     list_commands = [
         f"Image_Count {nFrames}",
@@ -71,30 +60,41 @@ def go( params ):
  
     
     for c in list_commands:
-        res = run_cmd( c  )   #Set number of frames
+        res = xd.run_cmd( c  )   #Set number of frames
         if res:
             break
-    for i in range(1, 3 + 1):        
+
+    for i in range(1, NRUNS + 1):        
         runname=f"run_{i}"        
-        res = run_cmd( f"startrun {runname}"  )   
+        res = xd.run_cmd( f"startrun {runname}"  )   
         if res:
             break
-        run_cmd( f"status -wait" )
+        xd.run_cmd( f"status -wait" )
 
 
-    exit() # debug
 
     setname = params[0]
     runname = params[1]
     foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
+
+    #DEBUG w local file on Windows
+    foreFile = r"C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
     
-    # todo - hardcode a back file - skip for now - #WIP#
+
+
+    fore = BKL.KeckFrame( foreFile )
+
     backFile = f'/mnt/raid/keckpad/set-{setname}/run-back/frames/run_1_00000001.raw' 
-    foreImage = open(foreFile,"rb")
-    backImage = open(backFile,"rb")
-    numImagesF = int(os.path.getsize(foreFile)/(1024+512*512*2))
-    numImagesB = int(os.path.getsize(backFile)/(1024+512*512*2))
+
+    #DEBUG w local file on Windows
+    backFile= r"C:\Sydor Technologies\temptst2_T21_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
+
+    back = BKL.KeckFrame( backFile )
     
+    numImagesF = fore.numImages 
+    numImagesB = back.numImages
+    
+    # create global big arrays to hold images
     foreStack = np.zeros((numImagesF,8,512,512),dtype=np.double)
     backStack = np.zeros((numImagesB,8,512,512),dtype=np.double)
 
@@ -114,22 +114,22 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
         nTap is 1-8
         W,H are in pixels typ 128,16
     """
-    global foreImage, backImage ,foreStack,backStack, numImagesF, numImagesB
+    global foreStack,backStack , fore, back
     ##################################
     #Adjust for clipping
     ##################################
     clipHigh = 1e8
     clipLow = 0
     #read all the image files
-    for fIdex in range(numImagesB):
-        (mdB,dataB) = BKL.keckFrame(backImage)
+    for fIdex in range( back.numImages ):
+        (mdB,dataB) = back.getFrame()
         #  return frameParms, lengthParms, frameMeta, capNum, data, frameNum, integTime, interTime
         backStack[ mdB.frameNum-1,(mdB.capNum-1)%8,:,:] += np.resize(dataB,[512,512])
 
-    avgBack = backStack/(numImagesB/8.0)
+    avgBack = backStack/( back.numImages/8.0)
 
-    for fIdex in range(numImagesF):
-        (mdF,dataF) = BKL.keckFrame(foreImage)
+    for fIdex in range( fore.numImages):
+        (mdF,dataF) = fore.getFrame()
         foreStack[mdF.frameNum-1,(mdF.capNum-1)%8,:,:] += np.resize(dataF,[512,512])
 
     #standDev = np.zeros((8,512,512),dtype=np.double)

@@ -3,6 +3,9 @@
 # v1.0 6/28/23 YF - Created
 #
 
+import subprocess
+
+
 # Special conversion - Sensor ADC Temperature
 #double StParameter::convertSensorTemperature(uint32_t raw) const
 #{
@@ -45,3 +48,23 @@ def convertSensorVoltage(raw):
 def convertSensorCurrent(raw):
     dval = convertSensorVoltage(raw)
     return dval / 2.09
+
+
+#
+#
+#
+def run_cmd( cmd_string ):
+    """ Use subprocess to send commands to the mcmd shell command
+    """
+    res = 0
+
+    # Run the shell command
+    result = subprocess.run("mmcmd " + cmd_string, shell=True, capture_output=True, text=True)
+
+    if len(result.stderr) >0:
+        print("E! " + result.stderr)
+        res = -1
+    if len(result.stdout)>0:
+        # Print the command output #DEBUG
+        print("O: "+result.stdout)   
+    return res # 0 = success, -1 = error

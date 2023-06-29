@@ -3,6 +3,7 @@
 #8/30/22 first creation
 
 # YF 6/23/23 - Tweaks
+# v 1.0 6/29/23 - Converted to class object. See plotlineout.py for examples
 
 import numpy as np
 import sys
@@ -16,11 +17,14 @@ import xpad_utils as xutil
 PRINT_METADATA = 1
 #
 
-
+ 
 class Metadata:
     __slots__ = ["frameParms", "lengthParms", "frameMeta", "capNum", "frameNum",
-                 "integTime", "interTime", "sensorTemp"]
-    def __init__(self, fp,  lp,  fm, cn, fn, integ, inter, st):
+                 "integTime", "interTime", 
+                 "v_iss_buf_pix", "v_iss_ab", "v_mon_out", "v_iss_buf",
+                 "vdda_current", "vdda_volts", "sensorTemp" ]
+    def __init__(self, fp,  lp,  fm, cn, fn, integ, inter, 
+                 v_iss_buf_pix, v_iss_ab, v_mon_out,  v_iss_buf, vddaCurrent, vddaVolts, st):
         self.frameParms = fp
         self.lengthParms = lp
         self.frameMeta = fm
@@ -28,91 +32,131 @@ class Metadata:
         self.frameNum = fn
         self.integTime = integ
         self.interTime = inter
+        self.v_iss_buf_pix = v_iss_buf_pix
+        self.v_iss_ab  = v_iss_ab
+        self.v_mon_out = v_mon_out
+        self.v_iss_buf = v_iss_buf
+        self.vdda_current = vddaCurrent
+        self.vdda_volts = vddaVolts
         self.sensorTemp = st
 
 
+class KeckFrame:
+    def __init__(self, filepath) -> None:
+        self.filepath = filepath
+        self.dataFile = None
+        self.numImages = 0
+        self.open()
 
 
-def keckFrame(dataFile):
-    headerBites = dataFile.read(16)  
-    frameParms = struct.unpack("<HHHHII",headerBites)
-    headerBites = dataFile.read(16) 
-    lengthParms = struct.unpack("<IHHBB6x",headerBites)
-    headerBites = dataFile.read(16)   # The first 48 are <?> in the file header
-    headerBites = dataFile.read(40)   # At 0x800000   to 0x800029
-    frameMeta = struct.unpack("<QIIQIIII",headerBites) # Q = 8, I = 4
-    # ADDR   Param                              Index
-    #  0x800000  Host Ref Tag           Q_1      0
-    #  0x800004  Host Ref Tag           Q_2      0  
-    #  0x800008  Glopbal Frame Count     I       1
-    #  0x80000C  GSeq Frame Count        I       2
-    #  0x800010  Time Since Armed        Q_1     3
-    #  0x800014  Time Since Armed        Q_2     3
-    #  0x800018  IntegrationTime         I       4
-    #  0x80001C  InterframeTime          I       5
-    #  0x800020  various_metame          I       6
-    #  0x800024  ReadoutDelay            I       7
+    def open(self) -> bool:
+        self.dataFile = open( self.filepath,"rb")
+        if self.dataFile:
+            self.numImages = int(os.path.getsize( self.filepath)/(1024+512*512*2))
+            return True
+
+        return False
     
-    
-    headerBites = dataFile.read(256-(16+16+16+40)) #read remainder of header bites
-    # Actually these are all 0?
-    s = 0
-    SensorTemp = np.zeros( (8,1), dtype='int16')  # nope :-(
-    for i in range(8):
-        subModMetaData = headerBites[s:s+24]
-        subModMetaDataB = struct.unpack("<HHHHHHHHHHHH",subModMetaData) # 
-        SensorTemp[i] = subModMetaDataB[9]
-        s += 8
 
-    
-    frameNum = frameMeta[1]
-    capNum = int(frameMeta[6]>>24) & 0xf
-    integTime = frameMeta[4]
-    interTime = frameMeta[5]
-    #print(capNum)
-
-    
-    dt = np.dtype('int16')
-    data = np.fromfile(dataFile, count = (lengthParms[1] * lengthParms[2]), dtype = dt)
-    footer = dataFile.read(768) #read footer bites 
-    footerB = struct.unpack("<384H",footer) #  read into list of uint16
-
-    # DEBUG
-    #print (tuple(hex(num) for num in footerB) )
-    # SubMod<N> Semsor Temp<N>
-    #print( footerB[8],  footerB[8 + 1*12],  footerB[8 + 2*12], 
-    #      footerB[8 + 3*12], footerB[8 + 4*12],  footerB[8 + 5*12], footerB[8 + 6*12], 
-    #      footerB[8 + 7*12]  ) 
-
-    v_iss_buf_pix = [footerB[i * 12] for i in range(8)]
-    v_iss_ab = [footerB[1 + i * 12] for i in range(8)]
-    v_mon_out = [footerB[2 + i * 12] for i in range(8)]
-    v_iss_buf = [footerB[3 + i * 12] for i in range(8)]
-    vdda_current = [footerB[4 + i * 12] for i in range(8)]
-    vdda_voltage = [footerB[5 + i * 12] for i in range(8)]
-    sensor_temp = [footerB[8 + i * 12] for i in range(8)]   # Sensor Temp
-
-    cv_iss_buf_pix = [ "{:10.4f}".format(xutil.convertSensorCurrent( x )) for x in v_iss_buf_pix  ]
-    cv_iss_ab      = [ "{:10.4f}".format(xutil.convertSensorCurrent( x )) for x in v_iss_ab  ]
-    cvdda_current  = [ "{:10.4f}".format(xutil.convertSensorCurrent( x )) for x in vdda_current  ]
-    cvdda_volts    = [ "{:10.4f}".format(xutil.convertSensorVoltage( x )) for x in vdda_voltage  ]
-    csensor_temp   = [ "{:10.4f}".format(xutil.convertSensorTemp( x )) for x in sensor_temp  ]
-    #debug
-    if PRINT_METADATA:
-        # Create a new list of formatted strings with 4 digits of precision
-        print(f"iss_buf_pix {', '.join(cv_iss_buf_pix)}" )
-        print(f"iss_ab      {', '.join(cv_iss_ab)}" )
-        print(f"vdda_curr   {', '.join(cvdda_current)}" )
-        print(f"vdda_V      {', '.join(cvdda_volts )}" )
-        print(f"Temper.     {', '.join(csensor_temp )}" )
+    def close(self):
+        if (self.dataFile):
+            self.dataFile.close()
 
 
-    metadata= Metadata(frameParms, lengthParms, frameMeta, capNum, 
-                 frameNum, integTime, interTime, csensor_temp )
+    def getFrame(self):
+        headerbytes = self.dataFile.read(16)  
+        frameParms = struct.unpack("<HHHHII",headerbytes)
+        headerbytes = self.dataFile.read(16) 
+        lengthParms = struct.unpack("<IHHBB6x",headerbytes)
+        headerbytes = self.dataFile.read(16)   # The first 48 are <?> in the file header
+        headerbytes = self.dataFile.read(40)   # At 0x800000   to 0x800029
+        frameMeta = struct.unpack("<QIIQIIII",headerbytes) # Q = 8, I = 4
+        # ADDR   Param                              Index
+        #  0x800000  Host Ref Tag           Q_1      0
+        #  0x800004  Host Ref Tag           Q_2      0  
+        #  0x800008  Glopbal Frame Count     I       1
+        #  0x80000C  GSeq Frame Count        I       2
+        #  0x800010  Time Since Armed        Q_1     3
+        #  0x800014  Time Since Armed        Q_2     3
+        #  0x800018  IntegrationTime         I       4
+        #  0x80001C  InterframeTime          I       5
+        #  0x800020  various_metame          I       6
+        #  0x800024  ReadoutDelay            I       7
+        
+        
+        headerbytes = self.dataFile.read(256-(16+16+16+40)) #read remainder of header bytes
+        # Actually these are all 0?
+        s = 0
+        SensorTemp = np.zeros( (8,1), dtype='int16')  # nope :-(
+        for i in range(8):
+            subModMetaData = headerbytes[s:s+24]
+            subModMetaDataB = struct.unpack("<HHHHHHHHHHHH",subModMetaData) # 
+            SensorTemp[i] = subModMetaDataB[9]
+            s += 8
+
+        
+        frameNum = frameMeta[1]
+        capNum = int(frameMeta[6]>>24) & 0xf
+        integTime = frameMeta[4]
+        interTime = frameMeta[5]
+        #print(capNum)
+
+        
+        dt = np.dtype('int16')
+        data = np.fromfile(self.dataFile, count = (lengthParms[1] * lengthParms[2]), dtype = dt)
+        footer = self.dataFile.read(768) #read footer bytes 
+        footerB = struct.unpack("<384H",footer) #  read into list of uint16
+
+        # DEBUG
+        #print (tuple(hex(num) for num in footerB) )
+        # SubMod<N> Semsor Temp<N>
+        #print( footerB[8],  footerB[8 + 1*12],  footerB[8 + 2*12], 
+        #      footerB[8 + 3*12], footerB[8 + 4*12],  footerB[8 + 5*12], footerB[8 + 6*12], 
+        #      footerB[8 + 7*12]  ) 
+
+        v_iss_buf_pix = [footerB[i * 12] for i in range(8)]
+        v_iss_ab = [footerB[1 + i * 12] for i in range(8)]
+        v_mon_out = [footerB[2 + i * 12] for i in range(8)]
+        v_iss_buf = [footerB[3 + i * 12] for i in range(8)]
+        vdda_current = [footerB[4 + i * 12] for i in range(8)]
+        vdda_voltage = [footerB[5 + i * 12] for i in range(8)]
+        sensor_temp = [footerB[8 + i * 12] for i in range(8)]   # Sensor Temp
+
+        # convert raw values to correct units
+        cv_iss_buf_pix = [ xutil.convertSensorCurrent( x ) for x in v_iss_buf_pix  ]
+        cv_iss_ab      = [ xutil.convertSensorCurrent( x ) for x in v_iss_ab  ]
+        cv_mon_out     = [ xutil.convertSensorVoltage( x ) for x in v_mon_out  ]
+        cv_iss_buf     = [ xutil.convertSensorVoltage( x ) for x in v_iss_buf  ]
+        cvdda_current  = [ xutil.convertSensorCurrent( x ) for x in vdda_current  ]
+        cvdda_volts    = [ xutil.convertSensorVoltage( x ) for x in vdda_voltage  ]
+        csensor_temp   = [ xutil.convertSensorTemp( x )    for x in sensor_temp  ]
+
+        if PRINT_METADATA:
+            # Create a new list of formatted strings with 4 digits of precision
+            temp = [ "{:10.4f}".format(x) for x in cv_iss_buf_pix ]; 
+            print(f"iss_buf_pix {', '.join( temp )}" )
+            temp = [ "{:10.4f}".format(x) for x in cv_iss_ab ];      
+            print(f"iss_ab      {', '.join( temp )}" )
+            temp = [ "{:10.4f}".format(x) for x in cv_mon_out ];     
+            print(f"mon_out     {', '.join( temp )}" )
+            temp = [ "{:10.4f}".format(x) for x in cv_iss_buf ];     
+            print(f"iss_buf     {', '.join( temp )}" )
+            temp = [ "{:10.4f}".format(x) for x in cvdda_current ];  
+            print(f"vdda_curr   {', '.join( temp )}" )
+            temp = [ "{:10.4f}".format(x) for x in cvdda_volts ];    
+            print(f"vdda_V      {', '.join( temp )}" )
+            temp = [ "{:10.4f}".format(x) for x in csensor_temp ];   
+            print(f"Temper.     {', '.join( temp )}" )
 
 
-    # return a Tuple of metadata structure and the Array Data             
-    return (metadata, data)
+        metadata= Metadata(frameParms, lengthParms, frameMeta, capNum, 
+                    frameNum, integTime, interTime, 
+                    cv_iss_buf_pix, cv_iss_ab, cv_mon_out, cv_iss_buf, cvdda_current, 
+                    cvdda_volts, csensor_temp )
+
+
+        # return a Tuple of metadata structure and the Array Data             
+        return (metadata, data)
 
 
 
@@ -129,26 +173,29 @@ if __name__ == "__main__":
     #"C:\Sydor Technologies\temptst3_T28_00000001.raw"
     #"C:\Sydor Technologies\temptst40_00000001.raw"
     #"C:\Sydor Technologies\S08a_CeO2_06_00000001.raw"
-    randomf = r"C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
-    randomb = r"C:\Sydor Technologies\S08a_CeO2_06_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
 
-    Fore = open(randomf,"rb")
-    Back = open(randomb,"rb")
+    
+    fore_filepath = r"C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
+    back_filepath = r"C:\Sydor Technologies\S08a_CeO2_06_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
 
-    (mdF, dataF) = keckFrame(Fore)
-    (mdB, dataB) = keckFrame(Back)
+
+    Fore = KeckFrame(fore_filepath)
+    Back = KeckFrame(back_filepath)
+
+    while True:
+        (mdF, dataF) = Fore.getFrame()
+        (mdB, dataB) = Back.getFrame()
+
+        print(mdF.frameNum, mdB.frameNum)
+
+        data2dF = np.resize( dataF, [512,512])
+        data2dB = np.resize( dataB, [512,512])
+
+        fig,axs = plt.subplots(3,1)
+        axs[0].imshow(data2dF)
+        axs[1].imshow(data2dB)
+        axs[2].imshow(data2dF-data2dB)
+        plt.show()
 
     Fore.close()
     Back.close()
-
-
-    print(mdF.frameNum, mdB.frameNum)
-
-    data2dF = np.resize( dataF, [512,512])
-    data2dB = np.resize( dataB, [512,512])
-
-    fig,axs = plt.subplots(3,1)
-    axs[0].imshow(data2dF)
-    axs[1].imshow(data2dB)
-    axs[2].imshow(data2dF-data2dB)
-    plt.show()
