@@ -46,8 +46,7 @@ def go( params ):
         exit(0)
 
     setname = params[0]
-    ##
-    # TODO: somehow optionally run YON.mcmd once if needed... ?
+    ## 
     res = True
     list_commands = [
         f"Image_Count {nFrames}",
