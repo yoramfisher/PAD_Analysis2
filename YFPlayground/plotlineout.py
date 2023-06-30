@@ -24,6 +24,8 @@ import sys
 import tkinter as tk
 import xpad_utils as xd
 from glob import glob
+import pickle
+
 #
 # Define some globals
 #
@@ -42,7 +44,7 @@ RAIDPATH="/mnt/raid/keckpad"
 #
 #
 #
-def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ) -> int:
+def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ):
     """ 
         Run multiple Runs - issuing one command (one parameter) that changes
         at each run.
@@ -113,16 +115,23 @@ def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ) -> int
         xd.run_cmd( f"status -wait" )
         runCount += 1
 
-    return runCount   
+    return {
+        "parameters": params,
+        "runCount":runCount,
+        "runVaryCommand":runVaryCommand,
+        "varRange":varRange
+    }   
 
 #
 #
 #
-def analyzeData(params):
+def analyzeData(aDict):
     """
     Load up the runs, and analyze
+    aDict should contain "parameters", "runCount", "runVaryCommand", "varRange"
     """
 
+    params = aDict["parameters"]
     setname = params[0]
     runname = params[1]
 
@@ -207,19 +216,33 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
 if __name__ == "__main__":
     # Code to be executed when the script is run directly
     print("Start.")
+    TAKE_DATA = 0
+    LOAD_DATA = 1
 
-    # Access the command-line arguments
-    # sys.argv[0] contains the script name
-    # sys.argv[1:] contains the parameters
-    parameters = sys.argv[1:]
-    # F! doesnt work
-    # hardcode instead
-    #           setname runname   FrameNum zASICX zASICY   nTap  ROIW ROIH 
-    parameters=['xpadscan','run_1', 1,      0,     0,       1,    128, 16]
+    if (TAKE_DATA):
+        # Access the command-line arguments
+        # sys.argv[0] contains the script name
+        # sys.argv[1:] contains the parameters
+        parameters = sys.argv[1:]
+        # F! doesnt work
+        # hardcode instead
+        #           setname runname   FrameNum zASICX zASICY   nTap  ROIW ROIH 
+        parameters=['xpadscan','run_1', 1,      0,     0,       1,    128, 16]
 
-    # Create new Runs
-    NR = takeData( parameters, overwrite = 1,
-       runVaryCommand="DFPGA DAC_OUT_VREF_BUF", varRange = np.arange(0,3,0.5) )
-    
-    # Analyze the data
-    analyzeData(parameters)
+        # Create new Runs
+        takeDataRet = takeData( parameters, overwrite = 1,
+        runVaryCommand="DFPGA DAC_OUT_VREF_BUF", varRange = np.arange(0,3,0.5) )
+        
+        # Pickle the results
+        pickleFile = open('plo_dump.pickle', 'wb')
+        pickle.dump(takeDataRet, pickleFile);
+        pickleFile.close()
+
+
+    if (LOAD_DATA):    
+        ####
+        pickleFile = open('plo_dump.pickle', 'rb')
+        takeDataRet =  pickle.load(pickleFile)
+        pickleFile.close()
+        # Analyze the data
+        analyzeData(takeDataRet)
