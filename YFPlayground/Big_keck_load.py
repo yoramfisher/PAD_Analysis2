@@ -3,7 +3,7 @@
 #8/30/22 first creation
 
 # YF 6/23/23 - Tweaks
-# v 1.0 6/29/23 - Converted to class object. See plotlineout.py for examples
+# v 1.0 6/29/23 - Converted to class object. See main in this file for example
 
 import numpy as np
 import sys

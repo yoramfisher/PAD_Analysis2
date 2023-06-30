@@ -18,11 +18,12 @@
 import numpy as np
 import Big_keck_load as BKL
 import os
+import shutil
 import matplotlib.pyplot as plt
 import sys
 import tkinter as tk
 import xpad_utils as xd
-
+from glob import glob
 #
 # Define some globals
 #
@@ -35,18 +36,42 @@ nFrames = 10
 integrationTime = 50
 interframeTime = 100
 NRUNS = 3
+RAIDPATH="/mnt/raid/keckpad"
 
     
-
-def go( params ):
+#
+#
+#
+def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ) -> int:
+    """ 
+        Run multiple Runs - issuing one command (one parameter) that changes
+        at each run.
+        runVaryCommand = string commmand
+        varRange = numpy.arange( , ,) 
+        overWrite. Set to 1 to delete previous Runs
+        Return number of runs saved
+    """
     global  foreStack,backStack, fore, back
+    
 
     if len(params) < 8:
         print(" Usage: ~ setname runname FrameNum nTap zASICX zASICY ROIW ROIH")
         exit(0)
 
+
     setname = params[0]
-    ## 
+    runname = params[1]
+
+
+    if overwrite:
+        # delete old runs
+        # rm -r "$RAIDPATH"/set-$setname/run-run_*
+        for match in glob(f"{RAIDPATH}/set-{setname}/run-run_*"):
+            shutil.rmtree(match)
+
+    #
+    # Create list of commands
+    #  
     res = True
     list_commands = [
         f"Image_Count {nFrames}",
@@ -56,30 +81,54 @@ def go( params ):
         f"SW_Trigger 1",
         f"startset {setname}"
         ]
- 
+     
     
+    #
+    # Run through list of commands - and send them to HW
+    #
     for c in list_commands:
-        res = xd.run_cmd( c  )   #Set number of frames
+        res = xd.run_cmd( c  )   
         if res:
             break
 
-    for i in range(1, NRUNS + 1):        
+    if varRange is not None:
+        NRUNS = len(varRange)
+
+    #
+    # Start a series of Runs
+    #
+    for i in range(1, NRUNS + 1):     
+        # scan a parameter here. Pass in runVaryCommand and varRange
+        if runVaryCommand:
+            var = varRange[0]
+            varRange = varRange[1:] # remove first element
+            c  = f"{runVaryCommand} {var}"
+            xd.run_cmd(c)
+
         runname=f"run_{i}"        
         res = xd.run_cmd( f"startrun {runname}"  )   
         if res:
             break
         xd.run_cmd( f"status -wait" )
 
+    return NRUNS   
 
+#
+#
+#
+def analyzeData(params):
+    """
+    Load up the runs, and analyze
+    """
 
     setname = params[0]
     runname = params[1]
+
     foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
 
     #DEBUG w local file on Windows
     foreFile = r"C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
     
-
 
     fore = BKL.KeckFrame( foreFile )
 
@@ -103,10 +152,13 @@ def go( params ):
     nTap = params[5]
     W   = params[6]
     H   = params[7]
-
-    
+ 
     plotROI( cap, zSX, zSY, nTap, W, H )
  
+
+ #
+ #
+ #
 def plotROI(cap, zSX, zSY, nTap, W, H): 
     """ cap is cap 0-7
         zSX and zSY are 0-3 ASIC coordinate
@@ -161,5 +213,10 @@ if __name__ == "__main__":
     # hardcode instead
     # setname runname FrameNum zASICX zASICY   nTap  ROIW ROIH 
     parameters=['xpadscan','run_1', 1, 0, 0,   1,    128, 16]
-    go( parameters )
-    input("Press Enter to continue...")
+
+    # Create new Runs
+    takeData( parameters, overwrite = 1,
+       runVaryCommand="DFPGA DAC_OUT_VREF_BUF", varRange = np.arange(0,3,0.5) )
+    
+    # Analyze the data
+    analyzeData(parameters)
