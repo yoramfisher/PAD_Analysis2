@@ -97,6 +97,7 @@ def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ) -> int
     #
     # Start a series of Runs
     #
+    runCount = 0
     for i in range(1, NRUNS + 1):     
         # scan a parameter here. Pass in runVaryCommand and varRange
         if runVaryCommand:
@@ -110,8 +111,9 @@ def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ) -> int
         if res:
             break
         xd.run_cmd( f"status -wait" )
+        runCount += 1
 
-    return NRUNS   
+    return runCount   
 
 #
 #
@@ -127,7 +129,7 @@ def analyzeData(params):
     foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
 
     #DEBUG w local file on Windows
-    foreFile = r"C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
+    foreFile = r"C:\Sydor Technologies\temptst_00000001.raw" 
     
 
     fore = BKL.KeckFrame( foreFile )
@@ -135,7 +137,7 @@ def analyzeData(params):
     backFile = f'/mnt/raid/keckpad/set-{setname}/run-back/frames/run_1_00000001.raw' 
 
     #DEBUG w local file on Windows
-    backFile= r"C:\Sydor Technologies\temptst2_T21_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
+    backFile= r"C:\Sydor Technologies\temptst2_T21_00000001.raw" 
 
     back = BKL.KeckFrame( backFile )
     
@@ -165,7 +167,7 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
         nTap is 1-8
         W,H are in pixels typ 128,16
     """
-    global foreStack,backStack , fore, back
+    global foreStack,backStack, fore, back 
     ##################################
     #Adjust for clipping
     ##################################
@@ -187,7 +189,7 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     DiffStack = foreStack-backStack
     #asicSDs = np.zeros((8,16),dtype=np.double)
 
-    
+    #  [ Frame, Cap, Y , X ] # TODO: check Y,X is correct
     PerCapImage = DiffStack[:,cap,:,:]
     
     startPixY = zSY * 128 + (nTap-1) * 16
@@ -195,6 +197,7 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     startPixX = zSX * 128
     endPixX = startPixX + W
     # frame 0 hardcoded for now
+    #                       frame  ,     Y,   X  
     plt.imshow( PerCapImage[0, startPixY:endPixY, startPixX:endPixX]) # might be flipped?? #WIP#
     plt.show()
  
@@ -211,11 +214,11 @@ if __name__ == "__main__":
     parameters = sys.argv[1:]
     # F! doesnt work
     # hardcode instead
-    # setname runname FrameNum zASICX zASICY   nTap  ROIW ROIH 
-    parameters=['xpadscan','run_1', 1, 0, 0,   1,    128, 16]
+    #           setname runname   FrameNum zASICX zASICY   nTap  ROIW ROIH 
+    parameters=['xpadscan','run_1', 1,      0,     0,       1,    128, 16]
 
     # Create new Runs
-    takeData( parameters, overwrite = 1,
+    NR = takeData( parameters, overwrite = 1,
        runVaryCommand="DFPGA DAC_OUT_VREF_BUF", varRange = np.arange(0,3,0.5) )
     
     # Analyze the data
