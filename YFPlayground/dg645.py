@@ -8,6 +8,7 @@ from datetime import datetime
 import traceback
 
 
+
 # File: 
 # Description: DG645.py
 
@@ -22,7 +23,8 @@ VERBOSE = 2  # set to 0 to be silent, set to 1 to get some debug output, 2 to ge
 CONNECTION_TYPE = 1  
 
 # SET the device IP Address below # Only used if CONNECTION_TYPE == 1
-TCP_SOCKET_PORT=23
+TCP_SOCKET_PORT=5024 ## sheesh. This is what the DG645 uses.
+
 #IP_ADDR="192.168.11.58"
 IP_ADDR="192.168.11.225"
 #
@@ -227,6 +229,84 @@ if __name__ == "__main__":
 
     
 
+
+#include "dg645.h"
+#include <QThread>
+
+
+
+const QString EOL = "\r";
+//
+// Constructor
+//
+DG645::DG645( JSNetwork *network )
+{
+    m_network = network;
+}
+
+DG645::~DG645()
+{
+    // stub
+}
+
+
+int DG645::send( const QString cmd)
+{
+   return  m_network->send(cmd + EOL);
+}
+
+QString DG645::query( const QString cmd)
+{   
+    return m_network->query(cmd + EOL);
+}
+
+//  set delay.
+//  Delay SRS manual page 56
+//  DLAY 2,0,10e-6<CR> Set channel A delay to equal channel T0 plus 10 µs.
+
+
+
+void DG645::setDelay(int nChannel_c, int nChannel_d, float fDelay)
+{
+   Q_ASSERT( m_network );
+   QString qs = QString("DLAY %1,%2,%3").arg(nChannel_c).arg(nChannel_d).arg(fDelay, 3,'g');
+   send( qs);
+}
+
+void DG645::doTrigger()
+{
+   QString qs = QString("*TRG");
+   send( qs);
+}
+
+void DG645::setTriggerSource(int i)
+{
+   QString qs = QString("TSRC %1").arg(i);
+   send( qs);
+}
+
+
+void DG645::setBurstMode(bool bEnable)
+{
+   QString qs = QString("BURM %1").arg(bEnable? 1:0);
+   send( qs);
+}
+
+void DG645::setBurstOptions( int nCount, float fTriggerDelay, float fBurstPeriod, bool T0_only)
+{
+    {QString qs = QString("BURC %1").arg( nCount);
+    send( qs); QThread::msleep(100);}
+
+    {QString qs = QString("BURD %1").arg( fTriggerDelay,3,'g');
+    send( qs); QThread::msleep(100);}
+
+    {QString qs = QString("BURP %1").arg( fBurstPeriod,3,'g');
+    send( qs); QThread::msleep(100);}
+
+    {QString qs = QString("BURT %1").arg( T0_only? 1 : 0 );
+    send( qs); QThread::msleep(100);}
+
+}
 
 
 
