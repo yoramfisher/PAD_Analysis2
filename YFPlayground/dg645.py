@@ -10,7 +10,7 @@ import traceback
 
 
 # File: 
-# Description: DG645.py
+# Description: dg645.py
 
 # Version History
 #  7/11/23 v 1.0 Inception
@@ -39,9 +39,8 @@ class comObject:
     """
 
     
-    
     # init method or constructor
-    def __init__(self, comType, ip_addr, port):
+    def __init__(self, comType, ip_addr, port = TCP_SOCKET_PORT):
         self.comms = None
         self.comType = comType
         self.ip_addr = ip_addr
@@ -115,7 +114,28 @@ class comObject:
         return None
 
 
-    def sendQuery(self, cmd):
+    def send(self, cmd):
+        """
+        send without query
+        """
+        recv = None
+        if self.comms == None:
+            return None     # Error. not open
+
+        if self.verbose:
+            print(cmd + " : ", end="")
+
+        if self.comType == 1:   
+            self.comms.send( cmd.encode() ) 
+            time.sleep(self.interCommandDelay);
+
+        if self.comType == 2:
+            self.comms.write( cmd.encode())
+            time.sleep(self.interCommandDelay);
+
+
+
+    def query(self, cmd):
         """
         send a query - return a string response
         """
@@ -127,13 +147,13 @@ class comObject:
             print(cmd + " : ", end="")
 
         if self.comType == 1:   
-            self.comms.send( (cmd+'\r\n').encode() ) 
+            self.comms.send( cmd.encode() ) 
             time.sleep(self.interCommandDelay);
             recv = self.comms.recv(1000).decode()
             time.sleep(self.interCommandDelay);
 
         if self.comType == 2:
-            self.comms.write( (cmd+'\r\n').encode())
+            self.comms.write( cmd.encode())
             time.sleep(self.interCommandDelay);
 
             response = self.comms.read_until()
@@ -146,18 +166,13 @@ class comObject:
 
 
     def parse(self, strResponse):
-        # T? Returns T?>1.23:OK\r
-        p1 = strResponse.split('>')   # T?       1.23:OK\r
-        if p1 and len(p1) >= 2:
-            p2 = p1[1].split(':')     #  1.23   OK\r
-            if p2 and len(p2) ==2 :
-                try:
-                    v = float( p2[0] ) 
-                    return v
-                except ValueError: 
-                    pass
-                    
+        pass            
         return None  
+
+
+#
+#
+#
 
 class DG645:
     """
@@ -165,12 +180,60 @@ class DG645:
     
     # init method or constructor
     def __init__(self, comObject):
-        self.pols = [0,0,0,0]
         self.verbose = VERBOSE
         self.comObject = comObject
+        self.EOL = "\r"
 
-    # TODO various commands
+    def send(self, cmd):
+        self.comObject.send(cmd + self.EOL)
 
+
+    def query(self, cmd):
+        return self.comObject.query(cmd + self.EOL)
+
+
+    def setDelay(self, nChannel_c, nChannel_d, fDelay):
+        """Delay SRS manual page 56
+           DLAY 2,0,10e-6<CR> Set channel A delay to equal channel T0 plus 10 µs.
+        """
+        s = f"DLAY {nChannel_c},{nChannel_d},{fDelay}"
+        self.send(s);
+
+    def doTrigger(self):
+        s = f"*TRG"
+        self.send(s);
+
+    def setTriggerSource(self, i):
+        s = f"TSRC {i}"
+        self.send(s);
+
+
+    def setBurstOptions( self, nCount, fTriggerDelay, fBurstPeriod,  T0_only):
+        s = f"BURC {nCount}"
+        self.send(s);
+        time.sleep( 100 );
+
+        s = f"BURD {fTriggerDelay}"
+        self.send(s);
+        time.sleep( 100 );
+
+        s = f"BURP {fBurstPeriod}"
+        self.send(s);
+        time.sleep( 100 );
+
+        s = f"BURT {T0_only}"
+        self.send(s);
+        time.sleep( 100 );
+
+    
+    def setBurstMode(self, bEnable):
+        """ bEnable is a boolean:True or False
+        """
+        n = 1 if bEnable else 0
+        s = f"BURM {n}"
+        self.send(s);
+
+        
 
 
 #
@@ -201,7 +264,9 @@ def main(argv):
     if (r):
         #now = datetime.now() # current date and time
         #date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-        pass # TODO
+        dg = DG645(c)
+        dg.setDelay(2,0,50e-6)
+        
     else:
         if c.verbose:
             print("Error, Could not connect")
@@ -228,86 +293,3 @@ if __name__ == "__main__":
    main(sys.argv[1:])
 
     
-
-
-#include "dg645.h"
-#include <QThread>
-
-
-
-const QString EOL = "\r";
-//
-// Constructor
-//
-DG645::DG645( JSNetwork *network )
-{
-    m_network = network;
-}
-
-DG645::~DG645()
-{
-    // stub
-}
-
-
-int DG645::send( const QString cmd)
-{
-   return  m_network->send(cmd + EOL);
-}
-
-QString DG645::query( const QString cmd)
-{   
-    return m_network->query(cmd + EOL);
-}
-
-//  set delay.
-//  Delay SRS manual page 56
-//  DLAY 2,0,10e-6<CR> Set channel A delay to equal channel T0 plus 10 µs.
-
-
-
-void DG645::setDelay(int nChannel_c, int nChannel_d, float fDelay)
-{
-   Q_ASSERT( m_network );
-   QString qs = QString("DLAY %1,%2,%3").arg(nChannel_c).arg(nChannel_d).arg(fDelay, 3,'g');
-   send( qs);
-}
-
-void DG645::doTrigger()
-{
-   QString qs = QString("*TRG");
-   send( qs);
-}
-
-void DG645::setTriggerSource(int i)
-{
-   QString qs = QString("TSRC %1").arg(i);
-   send( qs);
-}
-
-
-void DG645::setBurstMode(bool bEnable)
-{
-   QString qs = QString("BURM %1").arg(bEnable? 1:0);
-   send( qs);
-}
-
-void DG645::setBurstOptions( int nCount, float fTriggerDelay, float fBurstPeriod, bool T0_only)
-{
-    {QString qs = QString("BURC %1").arg( nCount);
-    send( qs); QThread::msleep(100);}
-
-    {QString qs = QString("BURD %1").arg( fTriggerDelay,3,'g');
-    send( qs); QThread::msleep(100);}
-
-    {QString qs = QString("BURP %1").arg( fBurstPeriod,3,'g');
-    send( qs); QThread::msleep(100);}
-
-    {QString qs = QString("BURT %1").arg( T0_only? 1 : 0 );
-    send( qs); QThread::msleep(100);}
-
-}
-
-
-
-

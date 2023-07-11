@@ -25,6 +25,8 @@ import tkinter as tk
 import xpad_utils as xd
 from glob import glob
 import pickle
+from dg645 import comObject
+from dg645 import DG645
 
 #
 # Define some globals
@@ -35,22 +37,25 @@ fore = None
 back = None
 
 nFrames = 10
-integrationTime = 50
-interframeTime = 100
-NRUNS = 3
+integrationTime = 10000000 # 10 millseconds
+interframeTime = 1000 # 1 usec
+NRUNS = 1
 RAIDPATH="/mnt/raid/keckpad"
-
+dg = None
     
 #
 #
 #
-def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ):
+def takeData( params, overwrite = 1, 
+    runVaryCommand="", varRange = None,
+    runFrameCommand = None ):
     """ 
         Run multiple Runs - issuing one command (one parameter) that changes
         at each run.
         runVaryCommand = string commmand
         varRange = numpy.arange( , ,) 
         overWrite. Set to 1 to delete previous Runs
+        runFrameCommand - pass in a function to call at each frame in a run
         Return number of runs saved
     """
     global  foreStack,backStack, fore, back
@@ -79,8 +84,6 @@ def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ):
         f"Image_Count {nFrames}",
         f"Interframe_Nsec {interframeTime}",
         f"Integration_Nsec {integrationTime}",
-        f"Integration_Nsec {integrationTime}",
-        f"SW_Trigger 1",
         f"startset {setname}"
         ]
      
@@ -112,6 +115,14 @@ def takeData( params, overwrite = 1, runVaryCommand="", varRange = None ):
         res = xd.run_cmd( f"startrun {runname}"  )   
         if res:
             break
+
+        # Optionally set SRS options here and trigger SRS for each frame in the run
+        # Loop <nFrames> times
+        #  
+        if runFrameCommand:
+            for j in range(nFrames):
+                runFrameCommand(j)
+
         xd.run_cmd( f"status -wait" )
         runCount += 1
 
@@ -212,12 +223,23 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
  
    
 
+def userFunction( nLoop ):
+    """ nLoop is the frame number. 
+    """
+    global dg
+    print(f"Called userFunction n={nLoop}")
+    dg.counter  = nLoop + 1
+    s = f"BURC {dg.counter}"
+    dg.send(s);
+    dg.doTrigger()
+    
+
 # Entry point of the script
 if __name__ == "__main__":
     # Code to be executed when the script is run directly
     print("Start.")
-    TAKE_DATA = 0
-    LOAD_DATA = 1
+    TAKE_DATA = 1
+    LOAD_DATA = 0
 
     if (TAKE_DATA):
         # Access the command-line arguments
@@ -227,11 +249,22 @@ if __name__ == "__main__":
         # F! doesnt work
         # hardcode instead
         #           setname runname   FrameNum zASICX zASICY   nTap  ROIW ROIH 
-        parameters=['xpadscan','run_1', 1,      0,     0,       1,    128, 16]
+        parameters=['xpadscan','run_1', 1,      0,     0,       8,    128, 16]
+
+        # if using an SRS DG645 box:
+        IP_ADDR = "192.168.11.225"  
+        c = comObject( 1, IP_ADDR )
+        r = c.tryConnect()
+        dg = DG645( c )
+        dg.counter = 0 # truly python hackery
+
+        dg.send("*CLS") # Clear errors
 
         # Create new Runs
         takeDataRet = takeData( parameters, overwrite = 1,
-        runVaryCommand="DFPGA DAC_OUT_VREF_BUF", varRange = np.arange(0,3,0.5) )
+            runVaryCommand="DFPGA DAC_OUT_VREF_BUF", 
+            varRange = np.arange(1.233,1.433,0.1),
+            runFrameCommand = userFunction )
         
         # Pickle the results
         pickleFile = open('plo_dump.pickle', 'wb')
