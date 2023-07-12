@@ -31,14 +31,13 @@ from dg645 import DG645
 #
 # Define some globals
 #
+VERBOSE = 1 # 0 = quiet, 1 = print some, 2 = print a lot
+
 foreStack = []
 backStack = []
 fore = None
 back = None
 
-nFrames = 10
-integrationTime = 10000000 # 10 millseconds
-interframeTime = 1000 # 1 usec
 NRUNS = 1
 RAIDPATH="/mnt/raid/keckpad"
 dg = None
@@ -46,28 +45,33 @@ dg = None
 #
 #
 #
-def takeData( params, overwrite = 1, 
+def takeData( params, list_commands, 
+    overwrite = 1,
     runVaryCommand="", varRange = None,
     runFrameCommand = None ):
     """ 
         Run multiple Runs - issuing one command (one parameter) that changes
         at each run.
+        params is a dictionary
+        overWrite. Set to 1 to delete previous Runs
+        list_commands = [list of string commands to send to HW ]
         runVaryCommand = string commmand
         varRange = numpy.arange( , ,) 
-        overWrite. Set to 1 to delete previous Runs
+        
         runFrameCommand - pass in a function to call at each frame in a run
-        Return number of runs saved
+        Return dictionary of results
     """
     global  foreStack,backStack, fore, back
     
 
-    if len(params) < 8:
-        print(" Usage: ~ setname runname FrameNum nTap zASICX zASICY ROIW ROIH")
-        exit(0)
+    # if len(params) < 8:
+    #     print(" Usage: ~ setname runname FrameNum nTap zASICX zASICY ROIW ROIH")
+    #     exit(0)
 
 
-    setname = params[0]
-    runname = params[1]
+    setname = params["setname"]
+    runname = params["runname"]
+    nFrames = params["nFrames"]
 
 
     if overwrite:
@@ -75,26 +79,24 @@ def takeData( params, overwrite = 1,
         # rm -r "$RAIDPATH"/set-$setname/run-run_*
         for match in glob(f"{RAIDPATH}/set-{setname}/run-run_*"):
             shutil.rmtree(match)
+            print(f"***DELETE RUN {match}")
 
     #
     # Create list of commands
     #  
     res = True
-    list_commands = [
-        f"Image_Count {nFrames}",
-        f"Interframe_Nsec {interframeTime}",
-        f"Integration_Nsec {integrationTime}",
-        f"startset {setname}"
-        ]
+   
      
     
     #
     # Run through list of commands - and send them to HW
     #
     for c in list_commands:
+        if VERBOSE:
+            print(f"**RUN_CMD {c}")
         res = xd.run_cmd( c  )   
         if res:
-            break
+            return None
 
     if varRange is not None:
         NRUNS = len(varRange)
@@ -109,7 +111,9 @@ def takeData( params, overwrite = 1,
             var = varRange[0]
             varRange = varRange[1:] # remove first element
             c  = f"{runVaryCommand} {var}"
-            xd.run_cmd(c)
+            res = xd.run_cmd(c)
+            if res:
+                break
 
         runname=f"run_{i}"        
         res = xd.run_cmd( f"startrun {runname}"  )   
@@ -222,16 +226,84 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     plt.show()
  
    
-
+#
+# useFunction is called for each frame of a run ( assumes an external trigger )
+#
 def userFunction( nLoop ):
     """ nLoop is the frame number. 
     """
     global dg
     print(f"Called userFunction n={nLoop}")
     dg.counter  = nLoop + 1
-    s = f"BURC {dg.counter}"
+    s = f"BURC {dg.counter}" # Set the burst Count
     dg.send(s);
     dg.doTrigger()
+    
+
+def Take_Data(constStringName):
+    global dg
+
+    if constStringName == "Sweep_SRS_BurstCount":
+
+
+        # Setup is using 1 VCSEL inside the integrating sphere. With 
+        # Width Switch; the three rightmost switches (towards power connector) are down:
+        # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
+        # Set HW parameters
+        setname = 'xpad-linscan'
+        runname = 'varyVrefBuf'
+        nFrames = 30  # frames Per Run
+        # SRS is setup with PER of 100us, so 30 takes 3ms
+        integrationTime = 5000000 # 5.0 millseconds
+        interframeTime = 1000 # 1 usec
+
+        # Create a dictionary of required parameters to define the run and later analysis
+        parameters= {
+            "setname": setname,
+            "runname": runname, 
+            "nFrames" : nFrames
+        }
+
+
+
+        # Using an SRS DG645 box:
+        IP_ADDR = "192.168.11.225"  
+        c = comObject( 1, IP_ADDR )
+        r = c.tryConnect()
+        dg = DG645( c )
+        dg.counter = 0 # truly python hackery
+
+        dg.send("*CLS") # Clear errors
+
+        list_commands = [
+            "stop",
+            "Trigger_Mode 2",
+            f"Image_Count {nFrames}",
+            "Cap_Select 0xF",
+            f"Interframe_Nsec {interframeTime}",
+            f"Integration_Nsec {integrationTime}",
+            f"startset {setname}"
+        ]
+        # Create new Runs
+        # Returns number of runs saved
+        takeDataRet = takeData( parameters, list_commands,
+            overwrite = 1,
+            runVaryCommand="DFPGA_DAC_OUT_VREF_BUF", 
+            varRange = np.arange(1033,1533,100),
+            runFrameCommand = userFunction )
+        
+        if (takeDataRet != None and takeDataRet["runCount"] > 0):
+            # Pickle the results
+            pickleFile = open('plo_dump.pickle', 'wb')
+            pickle.dump(takeDataRet, pickleFile);
+            pickleFile.close()
+            return takeDataRet # return dictionary
+
+        else:
+            print(" Oh Oh. something went wrong.")
+            return (0) # error    
+
+
     
 
 # Entry point of the script
@@ -241,36 +313,9 @@ if __name__ == "__main__":
     TAKE_DATA = 1
     LOAD_DATA = 0
 
+    
     if (TAKE_DATA):
-        # Access the command-line arguments
-        # sys.argv[0] contains the script name
-        # sys.argv[1:] contains the parameters
-        parameters = sys.argv[1:]
-        # F! doesnt work
-        # hardcode instead
-        #           setname runname   FrameNum zASICX zASICY   nTap  ROIW ROIH 
-        parameters=['xpadscan','run_1', 1,      0,     0,       8,    128, 16]
-
-        # if using an SRS DG645 box:
-        IP_ADDR = "192.168.11.225"  
-        c = comObject( 1, IP_ADDR )
-        r = c.tryConnect()
-        dg = DG645( c )
-        dg.counter = 0 # truly python hackery
-
-        dg.send("*CLS") # Clear errors
-
-        # Create new Runs
-        takeDataRet = takeData( parameters, overwrite = 1,
-            runVaryCommand="DFPGA DAC_OUT_VREF_BUF", 
-            varRange = np.arange(1.233,1.433,0.1),
-            runFrameCommand = userFunction )
-        
-        # Pickle the results
-        pickleFile = open('plo_dump.pickle', 'wb')
-        pickle.dump(takeDataRet, pickleFile);
-        pickleFile.close()
-
+        Take_Data("Sweep_SRS_BurstCount")
 
     if (LOAD_DATA):    
         ####
@@ -279,3 +324,5 @@ if __name__ == "__main__":
         pickleFile.close()
         # Analyze the data
         analyzeData(takeDataRet)
+
+    print("Done!")     
