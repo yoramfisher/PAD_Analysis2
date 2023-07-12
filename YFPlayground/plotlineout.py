@@ -6,15 +6,8 @@
 # v 0.1 6/13/23 YF - Inception
 # v 0.2 6/29/23 YF - Shift to not using any bash scripts. Instead commands run directly from Python.
 #
-# Expected parameters
-#    setname runname FrameNum zASICX zASICY nTap ROIW ROIH 
-# where, 
-#    zASICX and zASICY are zero index based 0-3 for the ASIC coordinate. 
-#    ie 0 0 is top-left, 3 3 is bottom-right
-#    nTap is 1-based tap (1-8)
-#    ROIW, ROIH is width and height, typically will be 128 16
-# typically will be called from shell script (see xpadScan.sh)
-
+# v 0.3 7/12/23 YF Take_Data works well.
+#
 import numpy as np
 import Big_keck_load as BKL
 import os
@@ -61,7 +54,7 @@ def takeData( params, list_commands,
         runFrameCommand - pass in a function to call at each frame in a run
         Return dictionary of results
     """
-    global  foreStack,backStack, fore, back
+    ####global  foreStack,backStack, fore, back
     
 
     # if len(params) < 8:
@@ -138,7 +131,7 @@ def takeData( params, list_commands,
     }   
 
 #
-#
+# not used
 #
 def analyzeData(aDict):
     """
@@ -252,6 +245,7 @@ def Take_Data(constStringName):
         # Set HW parameters
         setname = 'xpad-linscan'
         runname = 'varyVrefBuf'
+
         nFrames = 30  # frames Per Run
         # SRS is setup with PER of 100us, so 30 takes 3ms
         integrationTime = 5000000 # 5.0 millseconds
@@ -304,25 +298,99 @@ def Take_Data(constStringName):
             return (0) # error    
 
 
+def Analyze_Data(constStringName):
+    """
+    Load up the runs, and analyze
+    """
+    global foreStack,backStack, fore, back 
+    if constStringName == "Sweep_SRS_BurstCount":
+        setname = 'xpad-linscan'
+        #runname = 'varyVrefBuf'
+        cap = 1
+        roi = [46, 92, 32, 20]
+        NRUNS = 5
+        NCAPS = 3 # can this be pulled from file?
+ 
     
+    else:
+        return # error out
+
+    for runnum in range(NRUNS):
+        runname = f"run_{runnum+1}"
+        foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
+        fore = BKL.KeckFrame( foreFile )
+
+        numImagesF = fore.numImages 
+        
+        # create global big arrays to hold images
+        foreStack = np.zeros((numImagesF // NCAPS, NCAPS,512,512),dtype=np.double)
+        fore.NCAPS = NCAPS # Python tom-foolery
+    
+        plotLinearity( fore, None, roi )
+
+    
+def plotLinearity(fore, back, roi):
+    """
+    fore is BKL.Keckframe
+    back is BKL.Keckframe (can be none)
+    roi is [x,y,W,H]
+    """
+    global foreStack,backStack
+    ncaps = fore.NCAPS
+    if back != None:
+        for fIdex in range( back.numImages ):
+            (mdB,dataB) = back.getFrame()
+            #  return frameParms, lengthParms, frameMeta, capNum, data, frameNum, integTime, interTime
+            backStack[ mdB.frameNum-1,(mdB.capNum-1) % ncaps,:,:] += np.resize(dataB,[512,512])
+
+        avgBack = backStack/( back.numImages/8.0)
+
+    for fIdex in range( fore.numImages):
+        (mdF,dataF) = fore.getFrame()
+        frameNum = fIdex // ncaps 
+        dataArray = np.resize(dataF,[512,512])
+        foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
+        
+    #standDev = np.zeros((8,512,512),dtype=np.double)
+    #DiffStack = foreStack-backStack
+    #asicSDs = np.zeros((8,16),dtype=np.double)
+
+    #  [ Frame, Cap, Y , X ] # TODO: check Y,X is correct
+    
+    # rio is [X,Y,W,H]
+    startPixY = roi[1]
+    endPixY = startPixY + roi[3]
+    startPixX = roi[0]
+    endPixX = startPixX + roi[2]
+
+    for fn in range( fore.numImages // ncaps): # not a typo "//" is integer division
+        for cn in range (ncaps):
+            roiSum = np.average( foreStack[fn, cn, startPixY:endPixY, startPixX:endPixX] )
+            print( fn, cn, roiSum)
+
+    
+
 
 # Entry point of the script
 if __name__ == "__main__":
     # Code to be executed when the script is run directly
     print("Start.")
-    TAKE_DATA = 1
-    LOAD_DATA = 0
+    TAKE_DATA = 0
+    LOAD_DATA = 1
 
     
     if (TAKE_DATA):
         Take_Data("Sweep_SRS_BurstCount")
 
     if (LOAD_DATA):    
+
+        Analyze_Data("Sweep_SRS_BurstCount")
+
         ####
-        pickleFile = open('plo_dump.pickle', 'rb')
-        takeDataRet =  pickle.load(pickleFile)
-        pickleFile.close()
+        #pickleFile = open('plo_dump.pickle', 'rb')
+        #takeDataRet =  pickle.load(pickleFile)
+        #pickleFile.close()
         # Analyze the data
-        analyzeData(takeDataRet)
+        #analyzeData(takeDataRet)
 
     print("Done!")     

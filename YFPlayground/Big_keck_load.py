@@ -74,7 +74,7 @@ class KeckFrame:
         # ADDR   Param                              Index
         #  0x800000  Host Ref Tag           Q_1      0
         #  0x800004  Host Ref Tag           Q_2      0  
-        #  0x800008  Glopbal Frame Count     I       1
+        #  0x800008  Global Frame Count     I       1
         #  0x80000C  GSeq Frame Count        I       2
         #  0x800010  Time Since Armed        Q_1     3
         #  0x800014  Time Since Armed        Q_2     3
