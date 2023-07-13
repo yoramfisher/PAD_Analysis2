@@ -13,6 +13,7 @@ import Big_keck_load as BKL
 import os
 import shutil
 import matplotlib.pyplot as plt
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 import sys
 import tkinter as tk
 import xpad_utils as xd
@@ -30,6 +31,7 @@ foreStack = []
 backStack = []
 fore = None
 back = None
+P = []
 
 NRUNS = 1
 RAIDPATH="/mnt/raid/keckpad"
@@ -310,50 +312,89 @@ def Analyze_Data(constStringName):
         roi = [46, 92, 32, 20]
         NRUNS = 5
         NCAPS = 3 # can this be pulled from file?
+        runVaryCommand="DFPGA_DAC_OUT_VREF_BUF", 
+        varRange = np.arange(1033,1533,100),
  
     
     else:
         return # error out
 
+    roiSum = None
     for runnum in range(NRUNS):
         runname = f"run_{runnum+1}"
         foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
         fore = BKL.KeckFrame( foreFile )
 
         numImagesF = fore.numImages 
+        if roiSum is None:
+            roiSum = np.zeros((NRUNS,numImagesF // NCAPS, NCAPS),dtype=np.double)
         
         # create global big arrays to hold images
         foreStack = np.zeros((numImagesF // NCAPS, NCAPS,512,512),dtype=np.double)
         fore.NCAPS = NCAPS # Python tom-foolery
-    
-        plotLinearity( fore, None, roi )
 
+
+
+        roiSum = plotLinearity( fore, roi, data = roiSum, runnum = runnum)
+
+    if runVaryCommand:
+       title = f"{runVaryCommand} {varRange}"
+ 
+    prettyPlot (roiSum, title)
     
-def plotLinearity(fore, back, roi):
+
+#
+#
+#
+def prettyPlot(data, title):
+    nruns = len(data)
+
+    fig, ax = plt.subplots()
+    #plt.figure(1)
+    nframes = len(data [0])
+    for n in range(nruns):
+        x = .5 +.5*(n / (nruns-1))
+        ax.plot( range(nframes), data[n,:,0], 
+            label="Cap1" if n==0 else "", color=( x,0,0) )
+
+    for n in range(nruns):
+        x = .5 +.5*(n / (nruns-1))
+        ax.plot( range(nframes), data[n,:,1], 
+            label="Cap2" if n==0 else "", color = (0,0,x) )
+
+    for n in range(nruns):
+        x = .5 +.5*(n / (nruns-1))
+        ax.plot( range(nframes), data[n,:,2], 
+            label="Cap3" if n==0 else "", color = (0,x,0)) 
+
+
+    plt.legend()
+    plt.xlabel('N')
+    plt.ylabel('mean (ADU)')
+    plt.title( title )
+    ax.yaxis.set_minor_locator( MultipleLocator(1000))
+    plt.show(block=True) 
+
+
+
+def plotLinearity(fore, roi, data=None, runnum = 0):
     """
     fore is BKL.Keckframe
-    back is BKL.Keckframe (can be none)
     roi is [x,y,W,H]
+    title 
+    data is [#run, #frame, #cap]
+    runnum increments from 0 to #run-1
     """
     global foreStack,backStack
+    global P
+   
     ncaps = fore.NCAPS
-    if back != None:
-        for fIdex in range( back.numImages ):
-            (mdB,dataB) = back.getFrame()
-            #  return frameParms, lengthParms, frameMeta, capNum, data, frameNum, integTime, interTime
-            backStack[ mdB.frameNum-1,(mdB.capNum-1) % ncaps,:,:] += np.resize(dataB,[512,512])
-
-        avgBack = backStack/( back.numImages/8.0)
 
     for fIdex in range( fore.numImages):
         (mdF,dataF) = fore.getFrame()
-        frameNum = fIdex // ncaps 
+        frameNum = fIdex // ncaps  # not a typo "//" is integer division 
         dataArray = np.resize(dataF,[512,512])
         foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
-        
-    #standDev = np.zeros((8,512,512),dtype=np.double)
-    #DiffStack = foreStack-backStack
-    #asicSDs = np.zeros((8,16),dtype=np.double)
 
     #  [ Frame, Cap, Y , X ] # TODO: check Y,X is correct
     
@@ -362,13 +403,28 @@ def plotLinearity(fore, back, roi):
     endPixY = startPixY + roi[3]
     startPixX = roi[0]
     endPixX = startPixX + roi[2]
-
-    for fn in range( fore.numImages // ncaps): # not a typo "//" is integer division
-        for cn in range (ncaps):
-            roiSum = np.average( foreStack[fn, cn, startPixY:endPixY, startPixX:endPixX] )
-            print( fn, cn, roiSum)
-
+    nImages =  fore.numImages // ncaps  # not a typo "//" is integer division 
     
+
+    for fn in range( nImages ): 
+        for cn in range (ncaps):
+            data[runnum, fn,cn] = np.average( foreStack[fn, cn, startPixY:endPixY, startPixX:endPixX] )
+            #print( fn, cn, roiSum)
+
+    return data
+
+    #plt.figure(1)
+    #plt.plot( range(nImages), roiSum[:,0], label="Cap1") 
+    #plt.plot( range(nImages), roiSum[:,1], label="Cap2") 
+    #plt.plot( range(nImages), roiSum[:,2], label="Cap3") 
+
+
+    #plt.legend()
+    #plt.xlabel('N')
+    #plt.ylabel('mean (ADU)')
+    #plt.title( title )
+    #plt.show(block=True) 
+
 
 
 # Entry point of the script
