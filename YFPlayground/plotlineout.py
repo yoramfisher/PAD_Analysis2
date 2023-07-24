@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # File: plotlineout.py
-# Description - Read a raw KECK file from disk, and plot a hor. lineout.
+# Description - Used to Take and Analyze data on KeckPAD
+# Requires an SRS box connected via Ethernet.   Varies a parameter (such as VREF_BUF) while
+# sweeping the light source intensity by varying the number of pulses in BURST mode. 
+# Used to map out the linearity and perhaps find the most-linear on DC biases.
 #
 # History
 # v 0.1 6/13/23 YF - Inception
@@ -222,7 +225,7 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
  
    
 #
-# useFunction is called for each frame of a run ( assumes an external trigger )
+# userFunction is called for each frame of a run ( assumes an external trigger )
 #
 def userFunction( nLoop ):
     """ nLoop is the frame number. 
@@ -281,7 +284,7 @@ def Take_Data(constStringName):
             f"startset {setname}"
         ]
         # Create new Runs
-        # Returns number of runs saved
+        # Returns a dictionary
         takeDataRet = takeData( parameters, list_commands,
             overwrite = 1,
             runVaryCommand="DFPGA_DAC_OUT_VREF_BUF", 
