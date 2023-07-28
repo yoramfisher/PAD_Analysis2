@@ -245,7 +245,7 @@ def Take_Data(constStringName):
         # Width Switch; the three rightmost switches (towards power connector) are down:
         # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
         # Set HW parameters
-        setname = 'xpad-linscan'
+        setname = 'xpad-linscan_B27'
         runname = 'varyVrefBuf'
 
         nFrames = 30  # frames Per Run
@@ -285,7 +285,7 @@ def Take_Data(constStringName):
         takeDataRet = takeData( parameters, list_commands,
             overwrite = 1,
             runVaryCommand="DFPGA_DAC_OUT_VREF_BUF", 
-            varRange = np.arange(1033,1533,100),
+            varRange = np.arange(1000,2100,200), # Expect 1000, 1200, 1400, 1600, 1800, 2000 => 6 RUNS
             runFrameCommand = userFunction )
         
         if (takeDataRet != None and takeDataRet["runCount"] > 0):
@@ -306,14 +306,14 @@ def Analyze_Data(constStringName):
     """
     global foreStack,backStack, fore, back 
     if constStringName == "Sweep_SRS_BurstCount":
-        setname = 'xpad-linscan'
+        setname = 'xpad-linscan_B27'
         #runname = 'varyVrefBuf'
         cap = 1
         roi = [46, 92, 32, 20]
-        NRUNS = 5
+        NRUNS = 6
         NCAPS = 3 # can this be pulled from file?
         runVaryCommand="DFPGA_DAC_OUT_VREF_BUF", 
-        varRange = np.arange(1033,1533,100),
+        varRange = np.arange(1000,2100,200), # Make sure this matches!!
  
     
     else:
@@ -431,7 +431,7 @@ def plotLinearity(fore, roi, data=None, runnum = 0):
 if __name__ == "__main__":
     # Code to be executed when the script is run directly
     print("Start.")
-    TAKE_DATA = 0
+    TAKE_DATA = 1
     LOAD_DATA = 1
 
     
