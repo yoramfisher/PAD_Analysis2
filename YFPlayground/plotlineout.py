@@ -221,6 +221,13 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     # frame 0 hardcoded for now
     #                       frame  ,     Y,   X  
     plt.imshow( PerCapImage[0, startPixY:endPixY, startPixX:endPixX]) # might be flipped?? #WIP#
+    # TODO - we want to measure the amount of gradient, and average them over N Frames - toss out first image.
+    # x axis is <varRange>  y axis is <entity> x 8 for each Cap. 
+    ave_over_frames = DiffStack[ : , cap, startPixY:endPixX, startPixX:endPixX].mean(axis = 0) # Take average over rows
+    data_array = ave_over_frames.mean(axis=0) # does this give me a 1-D over x?
+    # Not sure ^ if thats right.
+
+    xd.gradient_over_lineout(data_array)
     plt.show()
  
    
@@ -237,13 +244,35 @@ def userFunction( nLoop ):
     dg.send(s);
     dg.doTrigger()
     
+#
+# userFunction is called for each frame of a run ( assumes an external trigger )
+#
+def userFunctionB( nLoop ):
+    """ nLoop is the frame number. 
+    """
+    global dg
+    print(f"Called userFunctionB n={nLoop}")
+    del1 = nLoop * 100 + 100
+    c  = f"Interframe_Delay_ns  {del1}" # TODO - check actual command
+    # Also  - may not be 'allowed' to change delay param in a run :-(
+    res = xd.run_cmd(c)
+    dg.doTrigger()
 
 def Take_Data(constStringName):
     global dg
 
+
+    # Using an SRS DG645 box:
+    IP_ADDR = "192.168.11.225"  
+    c = comObject( 1, IP_ADDR )
+    r = c.tryConnect()
+    dg = DG645( c )
+    dg.counter = 0 # truly python hackery
+    dg.send("*CLS") # Clear errors
+    
+    # Future me:  dg is global, and is used in userFunction to adjust SRS box at each run frame.
+
     if constStringName == "Sweep_SRS_BurstCount":
-
-
         # Setup is using 1 VCSEL inside the integrating sphere. With 
         # Width Switch; the three rightmost switches (towards power connector) are down:
         # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
@@ -265,14 +294,6 @@ def Take_Data(constStringName):
 
 
 
-        # Using an SRS DG645 box:
-        IP_ADDR = "192.168.11.225"  
-        c = comObject( 1, IP_ADDR )
-        r = c.tryConnect()
-        dg = DG645( c )
-        dg.counter = 0 # truly python hackery
-
-        dg.send("*CLS") # Clear errors
 
         list_commands = [
             "stop",
@@ -300,7 +321,58 @@ def Take_Data(constStringName):
 
         else:
             print(" Oh Oh. something went wrong.")
-            return (0) # error    
+            return (0) # error   
+
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    elif constStringName == "Sweep_Inter1":
+        # How does the slope of dark frames change as we change the interframe1 time? 
+        # Set HW parameters
+        setname = 'xpad-scan_inter1_B27'
+        runname = 'varyInter1' # not used :-( runs are called run1, run2...etc
+
+        nFrames = 30  # frames Per Run
+        
+        integrationTime = 100 # 100ns
+        interframeTime = 100  # 100 ns - initial same on all.
+
+        # Create a dictionary of required parameters to define the run and later analysis
+        parameters= {
+            "setname": setname,
+            "runname": runname, 
+            "nFrames" : nFrames
+        }
+
+
+
+
+        list_commands = [
+            "stop",
+            "Trigger_Mode 2",
+            f"Image_Count {nFrames}",
+            "Cap_Select 0x1FF",
+            f"Interframe_Nsec {interframeTime}",
+            f"Integration_Nsec {integrationTime}",
+            f"startset {setname}"
+        ]
+        # Create new Runs
+        # Returns a dictionary
+        takeDataRet = takeData( parameters, list_commands,
+            overwrite = 1,
+            runVaryCommand="readout_delay", # this aint right. todo check. 
+            varRange = np.arange(100,1000,100), # Expect 100, 200, 300, ... 1000 => 10 RUNS
+            runFrameCommand = userFunctionB )
+        
+        if (takeDataRet != None and takeDataRet["runCount"] > 0):
+            # Pickle the results
+            pickleFile = open('plo_dump.pickle', 'wb')
+            pickle.dump(takeDataRet, pickleFile);
+            pickleFile.close()
+            return takeDataRet # return dictionary
+
+        else:
+            print(" Oh Oh. something went wrong.")
+            return (0) # error   
 
 
 def Analyze_Data(constStringName):
@@ -337,7 +409,7 @@ def Analyze_Data(constStringName):
         fore.NCAPS = NCAPS # Python tom-foolery
 
 
-
+        # Each time called, builds up data in data var/ roiSum.
         roiSum = plotLinearity( fore, roi, data = roiSum, runnum = runnum)
 
     if runVaryCommand:
@@ -387,6 +459,7 @@ def plotLinearity(fore, roi, data=None, runnum = 0):
     title 
     data is [#run, #frame, #cap]
     runnum increments from 0 to #run-1
+    NOTE - Data is NOT plotted, rather data is storted in array data.
     """
     global foreStack,backStack
     global P
@@ -416,17 +489,7 @@ def plotLinearity(fore, roi, data=None, runnum = 0):
 
     return data
 
-    #plt.figure(1)
-    #plt.plot( range(nImages), roiSum[:,0], label="Cap1") 
-    #plt.plot( range(nImages), roiSum[:,1], label="Cap2") 
-    #plt.plot( range(nImages), roiSum[:,2], label="Cap3") 
-
-
-    #plt.legend()
-    #plt.xlabel('N')
-    #plt.ylabel('mean (ADU)')
-    #plt.title( title )
-    #plt.show(block=True) 
+   
 
 
 

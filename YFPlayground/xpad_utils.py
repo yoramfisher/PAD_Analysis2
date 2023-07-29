@@ -4,6 +4,7 @@
 #
 
 import subprocess
+import numpy as np
 
 
 # Special conversion - Sensor ADC Temperature
@@ -68,3 +69,13 @@ def run_cmd( cmd_string ):
         # Print the command output #DEBUG
         print("O: "+result.stdout)   
     return res # 0 = success, -1 = error
+
+
+def gradient_over_lineout( data_array):
+    """ data_array should be a 1-D float[]
+    """
+    # Lets assume it is  a 128 lineout averaged over 16 - from a Tap
+    # One option is to do a lineout - and return slope.
+    X = range( len(data_array) )
+    slope, intercept = np.polyfit(X, data_array, deg=1)
+    return slope,intercept
