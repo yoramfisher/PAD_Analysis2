@@ -183,6 +183,10 @@ def analyzeData(aDict):
  #
  #
  #
+
+#
+#
+#
 def plotROI(cap, zSX, zSY, nTap, W, H): 
     """ cap is cap 0-7
         zSX and zSY are 0-3 ASIC coordinate
@@ -253,11 +257,14 @@ def userFunctionB( nLoop ):
     global dg
     print(f"Called userFunctionB n={nLoop}")
     del1 = nLoop * 100 + 100
-    c  = f"Interframe_Delay_ns  {del1}" # TODO - check actual command
+    c  = f"Interframe1_Delay_ns  {del1}" # TODO - check actual command
     # Also  - may not be 'allowed' to change delay param in a run :-(
     res = xd.run_cmd(c)
     dg.doTrigger()
 
+#
+#
+#
 def Take_Data(constStringName):
     global dg
 
@@ -383,39 +390,67 @@ def Analyze_Data(constStringName):
     if constStringName == "Sweep_SRS_BurstCount":
         setname = 'xpad-linscan_B27'
         #runname = 'varyVrefBuf'
-        cap = 1
+        
         roi = [46, 92, 32, 20]
         NRUNS = 6
         NCAPS = 3 # can this be pulled from file?
         runVaryCommand="DFPGA_DAC_OUT_VREF_BUF", 
         varRange = np.arange(1000,2100,200), # Make sure this matches!!
+        fcnToCall = plotLinearity
+        roiSumNumDims = 3
+        fcnPlot = prettyPlot
  
+    elif constStringName == "Sweep_Inter1":
+        setname = 'xpad-scan_inter1_B27'
+        #runname = 'varyVrefBuf'
+        
+        roi = [0, 7*16, 128, 16] # TODO - check 
+        NRUNS = 10
+        NCAPS = 8 # can this be pulled from file?
+        runVaryCommand="readout_delay", # this aint right. todo check. 
+        varRange = np.arange(100,1000,100), # Expect 100, 200, 300, ... 1000 => 10 RUNS # Make sure this matches!!
+        fcnToCall = plotEachCapLineout
+        roiSumNumDims = 4
+        fcnPlot = prettyAllCapsInALine
     
     else:
+        print("Analyze_Data(stringName), Name not valid")
         return # error out
 
     roiSum = None
     for runnum in range(NRUNS):
         runname = f"run_{runnum+1}"
-        foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
+        if 1: # Local Mac testing!
+            foreFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' # check not sure...
+            
+        else:
+            foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
         fore = BKL.KeckFrame( foreFile )
 
         numImagesF = fore.numImages 
         if roiSum is None:
-            roiSum = np.zeros((NRUNS,numImagesF // NCAPS, NCAPS),dtype=np.double)
-        
+            if roiSumNumDims == 3:
+                roiSum = np.zeros((NRUNS,numImagesF // NCAPS, NCAPS),dtype=np.double)
+            elif roiSumNumDims == 4:
+                roiSum = np.zeros((NRUNS,numImagesF // NCAPS, NCAPS, roi[2]),dtype=np.double)
+
+
         # create global big arrays to hold images
         foreStack = np.zeros((numImagesF // NCAPS, NCAPS,512,512),dtype=np.double)
         fore.NCAPS = NCAPS # Python tom-foolery
 
 
         # Each time called, builds up data in data var/ roiSum.
-        roiSum = plotLinearity( fore, roi, data = roiSum, runnum = runnum)
+        #roiSum = plotLinearity( fore, roi, data = roiSum, runnum = runnum)
+        roiSum = fcnToCall( fore, roi, data = roiSum, runnum = runnum)
 
     if runVaryCommand:
        title = f"{runVaryCommand} {varRange}"
  
-    prettyPlot (roiSum, title)
+    #
+    #  fcnPlot is the function to generate plot. It is defined in the IF's above.
+    #
+    fcnPlot (roiSum, title)
     
 
 #
@@ -450,6 +485,47 @@ def prettyPlot(data, title):
     ax.yaxis.set_minor_locator( MultipleLocator(1000))
     plt.show(block=True) 
 
+#
+#   Data has <NCAPS> lineouts.  Line them all up into one lineout per image 
+#
+def prettyAllCapsInALine(data, title):
+    """
+    data should be [nRuns, nFrames, nCaps, Width_of_lineout]
+    """
+    nruns = len(data)
+
+    fig, ax = plt.subplots()
+    #plt.figure(1)
+    nframes = len(data[0])
+    ncaps = len(data[0,0] )
+    dataWidth = len(data[0,0,0])
+
+    
+    for n in range(nruns):     
+        for f in range(nframes):
+            d = []    
+            for c in range(ncaps):
+                d.extend( data[n, f, c, :])
+            
+            x = .5 +.5*(f / (nframes-1))
+            if n%3 == 0:
+                clr = (x,0,0)
+            elif n%3 == 1:    
+                clr = (0,x,0)
+            elif n%3 == 2:
+                clr = (0,0,x)
+
+            ax.plot( range(len(d)), d, color=clr,
+            label=f"Frame{f}" )
+
+
+
+    plt.legend()
+    plt.xlabel('1Tap-lineout across ALL caps')
+    plt.ylabel('Ave (ADU)')
+    plt.title( title )
+    ax.yaxis.set_minor_locator( MultipleLocator(1000))
+    plt.show(block=True) 
 
 
 def plotLinearity(fore, roi, data=None, runnum = 0):
@@ -460,6 +536,7 @@ def plotLinearity(fore, roi, data=None, runnum = 0):
     data is [#run, #frame, #cap]
     runnum increments from 0 to #run-1
     NOTE - Data is NOT plotted, rather data is storted in array data.
+    stores the average value over the ROI.
     """
     global foreStack,backStack
     global P
@@ -489,7 +566,45 @@ def plotLinearity(fore, roi, data=None, runnum = 0):
 
     return data
 
+
+def plotEachCapLineout(fore, roi, data=None, runnum = 0):
+    """
+    fore is BKL.Keckframe
+    roi is [x,y,W,H]
+    title 
+    data is [#run, #frame, #cap]
+    runnum increments from 0 to #run-1
+    NOTE - Data is NOT plotted, rather data is storted in array data.
+    stores the average value over the ROI.
+    """
+    global foreStack,backStack
+    global P
    
+    ncaps = fore.NCAPS
+
+    for fIdex in range( fore.numImages):
+        (mdF,dataF) = fore.getFrame()
+        frameNum = fIdex // ncaps  # not a typo "//" is integer division 
+        dataArray = np.resize(dataF,[512,512])
+        foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
+
+    #  [ Frame, Cap, Y , X ] # TODO: check Y,X is correct
+    
+    # rio is [X,Y,W,H]
+    startPixY = roi[1]
+    endPixY = startPixY + roi[3]
+    startPixX = roi[0]
+    endPixX = startPixX + roi[2]
+    nImages =  fore.numImages // ncaps  # not a typo "//" is integer division 
+    
+
+    for fn in range( nImages ): 
+        for cn in range (ncaps):
+            # Hopefully - axis=0 averages over columns
+            data[runnum, fn,cn] = np.mean( foreStack[fn, cn, startPixY:endPixY, startPixX:endPixX], axis=0 )
+            print(f"debug:{data[runnum, fn, cn]}")
+
+    return data
 
 
 
@@ -497,16 +612,20 @@ def plotLinearity(fore, roi, data=None, runnum = 0):
 if __name__ == "__main__":
     # Code to be executed when the script is run directly
     print("Start.")
-    TAKE_DATA = 1
+    TAKE_DATA = 0
     LOAD_DATA = 1
 
     
     if (TAKE_DATA):
-        Take_Data("Sweep_SRS_BurstCount")
+        #Take_Data("Sweep_SRS_BurstCount")
+        Take_Data("Sweep_Inter1")
+        
 
     if (LOAD_DATA):    
 
-        Analyze_Data("Sweep_SRS_BurstCount")
+        #Analyze_Data("Sweep_SRS_BurstCount")
+        Analyze_Data("Sweep_Inter1")
+        
 
         ####
         #pickleFile = open('plo_dump.pickle', 'rb')
