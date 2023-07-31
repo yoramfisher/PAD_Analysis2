@@ -339,7 +339,7 @@ def Take_Data(constStringName):
         setname = 'xpad-scan_inter1_B27'
         runname = 'varyInter1' # not used :-( runs are called run1, run2...etc
 
-        nFrames = 10  # frames Per Run  TODO: was 30 
+        nFrames = 10  # frames Per Run  
         
         integrationTime = 100 # 100ns
         interframeTime = 100  # 100 ns - initial same on all.
@@ -519,7 +519,7 @@ def prettyAllCapsInALine(data, title):
                 clr = (0,0,x)
 
             ax.plot( range(len(d)), d, color=clr,
-            label=f"Frame{f}" )
+            label=f"Run{n}" if f ==0 else "" )
 
 
 
@@ -617,20 +617,22 @@ if __name__ == "__main__":
     print("Start.")
     TAKE_DATA = 0
     LOAD_DATA = 1
+    # Using SRS box - adjust burst count to get linear intensity sweeps
+    #strDescriptor = "Sweep_SRS_BurstCount"
+    # Adjust integration time [1] - see if the gradient shapes change with delay (they dont)
+    strDescriptor = "Sweep_Inter1"
+
     
 
     
     if (TAKE_DATA):
-        #Take_Data("Sweep_SRS_BurstCount")
-        ret = Take_Data("Sweep_Inter1")
+        ret = Take_Data(strDescriptor)
         if ret == 0:
             exit(0)
         
 
     if (LOAD_DATA):    
-
-        #Analyze_Data("Sweep_SRS_BurstCount")
-        Analyze_Data("Sweep_Inter1")
+        ret = Analyze_Data(strDescriptor)
         
 
         ####
