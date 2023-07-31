@@ -67,7 +67,7 @@ def run_cmd( cmd_string ):
         res = -1
     if len(result.stdout)>0:
         # Print the command output #DEBUG
-        print("O: "+result.stdout)   
+        print(f"cmd:{cmd_string}, res:{result.stdout}")   
     return res # 0 = success, -1 = error
 
 
