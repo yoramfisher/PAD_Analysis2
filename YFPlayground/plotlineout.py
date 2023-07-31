@@ -24,7 +24,7 @@ from glob import glob
 import pickle
 from dg645 import comObject
 from dg645 import DG645
-
+import time
 #
 # Define some globals
 #
@@ -124,7 +124,8 @@ def takeData( params, list_commands,
         if runFrameCommand:
             for j in range(nFrames):
                 runFrameCommand(j)
-
+                time.sleep(.5)
+                
         xd.run_cmd( f"status -wait" )
         runCount += 1
 
@@ -256,9 +257,9 @@ def userFunctionB( nLoop ):
     """
     global dg
     print(f"Called userFunctionB n={nLoop}")
-    del1 = nLoop * 100 + 100
-    c  = f"Interframe1_Delay_ns  {del1}" # TODO - check actual command
-    # Also  - may not be 'allowed' to change delay param in a run :-(
+    del1 = nLoop * 1000 + 100
+    c  = f"Interframe_nsec[1]  {del1}"  # bug?? using [0] changes them all?
+    # We ARE 'allowed' to change delay param in a run (!)
     res = xd.run_cmd(c)
     dg.doTrigger()
 
@@ -338,7 +339,7 @@ def Take_Data(constStringName):
         setname = 'xpad-scan_inter1_B27'
         runname = 'varyInter1' # not used :-( runs are called run1, run2...etc
 
-        nFrames = 30  # frames Per Run
+        nFrames = 10  # frames Per Run  TODO: was 30 
         
         integrationTime = 100 # 100ns
         interframeTime = 100  # 100 ns - initial same on all.
@@ -366,8 +367,10 @@ def Take_Data(constStringName):
         # Returns a dictionary
         takeDataRet = takeData( parameters, list_commands,
             overwrite = 1,
-            runVaryCommand="readout_delay", # this aint right. todo check. 
-            varRange = np.arange(100,1000,100), # Expect 100, 200, 300, ... 1000 => 10 RUNS
+            runVaryCommand="Readout_Delay", 
+            #todo: 
+            varRange = np.arange(0,150,50), # Expect 0, 50, 100, 150,  => 4 RUNS
+            # NOTE that Readout_Delay is in units of 10ns clocks.
             runFrameCommand = userFunctionB )
         
         if (takeDataRet != None and takeDataRet["runCount"] > 0):
@@ -405,10 +408,10 @@ def Analyze_Data(constStringName):
         #runname = 'varyVrefBuf'
         
         roi = [0, 7*16, 128, 16] # TODO - check 
-        NRUNS = 10
+        NRUNS = 3 
         NCAPS = 8 # can this be pulled from file?
         runVaryCommand="readout_delay", # this aint right. todo check. 
-        varRange = np.arange(100,1000,100), # Expect 100, 200, 300, ... 1000 => 10 RUNS # Make sure this matches!!
+        varRange = np.arange(100,6100,500), # Expect 100, 600, 1100, 1600... 1000 => 10 RUNS # Make sure this matches!!
         fcnToCall = plotEachCapLineout
         roiSumNumDims = 4
         fcnPlot = prettyAllCapsInALine
@@ -420,7 +423,7 @@ def Analyze_Data(constStringName):
     roiSum = None
     for runnum in range(NRUNS):
         runname = f"run_{runnum+1}"
-        if 1: # Local Mac testing!
+        if 0: # Local Mac testing!
             foreFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' # check not sure...
             
         else:
@@ -602,7 +605,7 @@ def plotEachCapLineout(fore, roi, data=None, runnum = 0):
         for cn in range (ncaps):
             # Hopefully - axis=0 averages over columns
             data[runnum, fn,cn] = np.mean( foreStack[fn, cn, startPixY:endPixY, startPixX:endPixX], axis=0 )
-            print(f"debug:{data[runnum, fn, cn]}")
+            #print(f"debug:{data[runnum, fn, cn]}")
 
     return data
 
@@ -614,11 +617,14 @@ if __name__ == "__main__":
     print("Start.")
     TAKE_DATA = 0
     LOAD_DATA = 1
+    
 
     
     if (TAKE_DATA):
         #Take_Data("Sweep_SRS_BurstCount")
-        Take_Data("Sweep_Inter1")
+        ret = Take_Data("Sweep_Inter1")
+        if ret == 0:
+            exit(0)
         
 
     if (LOAD_DATA):    
