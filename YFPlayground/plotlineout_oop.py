@@ -10,9 +10,10 @@
 # v 0.2 6/29/23 YF - Shift to not using any bash scripts. Instead commands run directly from Python.
 #
 # v 0.3 7/12/23 YF Take_Data works well.
-# v 0.4 7/31/23 OOP the S out of it.
-
+# v 0.4 7/31/23 OOP the S out of it. You should be able to edit createObject() to generate
+#  most data runs where one thing is varied per Run and another thing is varied per frame.
 #
+
 import numpy as np
 import Big_keck_load as BKL
 import os
