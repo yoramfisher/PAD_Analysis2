@@ -31,12 +31,15 @@ import time
 # Define some globals
 #
 VERBOSE = 1 # 0 = quiet, 1 = print some, 2 = print a lot
-
-# ? P = []
-
-NRUNS = 1
+#
+#
+# User edit settings
 RAIDPATH="/mnt/raid/keckpad"
-    
+TAKE_DATA=False
+ANALYZE_DATA=True  
+#
+# 
+#   
  
 # OOP the heck out of this
 class dataObject:
@@ -48,7 +51,7 @@ class dataObject:
         self.overwrite = True  # Set to true to delete previous runs
         self.bTakeData = bTakeData
         self.bAnalyzeData = bAnalyzeData
-        self.TEST_ON_MAC = True
+        self.TEST_ON_MAC = False
 
 
 
@@ -97,7 +100,7 @@ class dataObject:
             ]
 
             
-            self.runVaryCommand="DFPGA_DAC_OUT_VREF_BUF", 
+            self.runVaryCommand="DFPGA_DAC_OUT_VREF_BUF" 
             self.varRange = [1000, 1200, 1400, 1600, 1800, 2000] 
             self.runFrameCommand = self.userFunction 
 
@@ -124,10 +127,10 @@ class dataObject:
                 "Cap_Select 0x1FF",
             ]
            
-            self.runVaryCommand="Readout_Delay", 
+            self.runVaryCommand="Readout_Delay" 
             self.varRange = [0,50,100,150]
             self.runFrameCommand = self.userFunctionB
-            self.innerVarRange = [100,200,300,400,500,600,700,800,900,1000]
+            self.innerVarRange = [100,1100,2100,3100,4100,5100,6100,7100,8100,9100]
             self.innerVarCommand ="Interframe_nsec[1]" # [0] does not work correctly BUG!
 
             self.roi = [0, 7*16, 128, 16]
@@ -140,7 +143,7 @@ class dataObject:
         elif self.strDescriptor == "Sweep_Integ1":               
             # How does the slope of dark frames change as we change the interframe1 time? 
             # Set HW parameters
-            self.setname = 'xpad-scan_integ1_B27'
+            self.setname = 'xpad-scan_integ1xxx_B27'
             self.nFrames = 5  # frames Per Run  
           
             # We ARE 'allowed' to change delay param in a run (!)
@@ -153,10 +156,10 @@ class dataObject:
                 "Cap_Select 0x1FF",
             ]
            
-            self.runVaryCommand="Readout_Delay", 
+            self.runVaryCommand="Readout_Delay"
             self.varRange = [0,50,100,150]
             self.runFrameCommand = self.userFunctionB
-            self.innerVarRange = [100,600,1100,1600,2100]
+            self.innerVarRange = [100,2100,6100,10100,20100]
             self.innerVarCommand ="Integration_nsec[1]" # [0] does not work correctly BUG!
 
             self.roi = [0, 7*16, 128, 16]
@@ -171,11 +174,11 @@ class dataObject:
         self.list_commands = [
             "stop",
             "Trigger_Mode 2",
-            f"Image_Count {self.nFrames}"
+            f"Image_Count {self.nFrames}",
             f"Interframe_Nsec {self.interframeTime}",
             f"Integration_Nsec {self.integrationTime}",
         ]
-        self.list_commands.append( unique_commands )
+        self.list_commands.extend( unique_commands )
         self.list_commands.append(  f"startset {self.setname}" )
 
 
@@ -230,8 +233,8 @@ class dataObject:
         for i in range(1, NRUNS + 1):     
             # scan a parameter here. Pass in runVaryCommand and varRange
             if self.runVaryCommand:
-                var = varRange[0]
-                varRange = varRange[1:] # remove first element
+                var = self.varRange[0]
+                self.varRange = self.varRange[1:] # remove first element
                 c  = f"{self.runVaryCommand} {var}"
                 res = xd.run_cmd(c)
                 if res:
@@ -543,11 +546,11 @@ if __name__ == "__main__":
     # Using SRS box - adjust burst count to get linear intensity sweeps
     #strDescriptor = "Sweep_SRS_BurstCount"
     # Adjust inteframe time [1] - see if the gradient shapes change with delay (they dont)
-    strDescriptor = "Sweep_Inter1"
+    #strDescriptor = "Sweep_Inter1"
     # Adjust integration time [1] - see if the gradient shapes change with delay (they dont)
-    #strDescriptor = "Sweep_Integ1"
+    strDescriptor = "Sweep_Integ1"
 
-    dobj = dataObject( strDescriptor, bTakeData=False, bAnalyzeData=True)
+    dobj = dataObject( strDescriptor, bTakeData=TAKE_DATA, bAnalyzeData=ANALYZE_DATA)
     
     if dobj.bTakeData:
         ret = dobj.Take_Data()
