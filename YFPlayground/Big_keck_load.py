@@ -14,7 +14,7 @@ import xpad_utils as xutil
 
 
 # GLOBAL FLAGS
-PRINT_METADATA = 1
+PRINT_METADATA = 0
 #
 
  
