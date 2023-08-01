@@ -124,7 +124,7 @@ def takeData( params, list_commands,
         if runFrameCommand:
             for j in range(nFrames):
                 runFrameCommand(j)
-                time.sleep(.5)
+                time.sleep(1.0)
                 
         xd.run_cmd( f"status -wait" )
         runCount += 1
@@ -257,8 +257,16 @@ def userFunctionB( nLoop ):
     """
     global dg
     print(f"Called userFunctionB n={nLoop}")
-    del1 = nLoop * 1000 + 100
-    c  = f"Interframe_nsec[1]  {del1}"  # bug?? using [0] changes them all?
+
+    if strDescriptor == "Sweep_Inter1":
+        del1 = nLoop * 1000 + 100
+        c  = f"Interframe_nsec[1]  {del1}"  # bug?? using [0] changes them all?
+    elif  strDescriptor == "Sweep_Integ1":   
+        del1 = nLoop * 1000 + 100
+        c  = f"Integration_nsec[1]  {del1}"  # bug?? using [0] changes them all?
+    else:
+        raise Exception("Error in userFunctionB. Unrecognized strDescriptor") 
+
     # We ARE 'allowed' to change delay param in a run (!)
     res = xd.run_cmd(c)
     dg.doTrigger()
@@ -385,6 +393,59 @@ def Take_Data(constStringName):
             return (0) # error   
 
 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    elif constStringName == "Sweep_Integ1":
+        # How does the slope of dark frames change as we change the integration1 time? 
+        # Set HW parameters
+        setname = 'xpad-scan_integ1_B27'
+        runname = '' # not used :-( runs are called run1, run2...etc
+
+        nFrames = 10  # frames Per Run  
+        
+        integrationTime = 100 # 100ns
+        interframeTime = 100  # 100 ns - initial same on all.
+
+        # Create a dictionary of required parameters to define the run and later analysis
+        parameters= {
+            "setname": setname,
+            "runname": runname, 
+            "nFrames" : nFrames
+        }
+
+
+
+
+        list_commands = [
+            "stop",
+            "Trigger_Mode 2",
+            f"Image_Count {nFrames}",
+            "Cap_Select 0x1FF",
+            f"Interframe_Nsec {interframeTime}",
+            f"Integration_Nsec {integrationTime}",
+            f"startset {setname}"
+        ]
+        # Create new Runs
+        # Returns a dictionary
+        takeDataRet = takeData( parameters, list_commands,
+            overwrite = 1,
+            runVaryCommand="Readout_Delay", 
+            #todo: 
+            varRange = np.arange(0,150,50), # Expect 0, 50, 100, 150,  => 4 RUNS
+            # NOTE that Readout_Delay is in units of 10ns clocks.
+            runFrameCommand = userFunctionB )
+        
+        if (takeDataRet != None and takeDataRet["runCount"] > 0):
+            # Pickle the results
+            pickleFile = open('plo_dump.pickle', 'wb')
+            pickle.dump(takeDataRet, pickleFile);
+            pickleFile.close()
+            return takeDataRet # return dictionary
+
+        else:
+            print(" Oh Oh. something went wrong.")
+            return (0) # error           
+
+
 def Analyze_Data(constStringName):
     """
     Load up the runs, and analyze
@@ -415,7 +476,19 @@ def Analyze_Data(constStringName):
         fcnToCall = plotEachCapLineout
         roiSumNumDims = 4
         fcnPlot = prettyAllCapsInALine
-    
+
+    elif constStringName == "Sweep_Integ1":
+        setname = 'xpad-scan_integ1_B27'
+        
+        roi = [0, 7*16, 128, 16] # TODO - check 
+        NRUNS = 3 
+        NCAPS = 8 # can this be pulled from file?
+        runVaryCommand="Readout_Delay", 
+        varRange = np.arange(0,1000,500), 
+        fcnToCall = plotEachCapLineout
+        roiSumNumDims = 4
+        fcnPlot = prettyAllCapsInALine
+
     else:
         print("Analyze_Data(stringName), Name not valid")
         return # error out
@@ -619,8 +692,10 @@ if __name__ == "__main__":
     LOAD_DATA = 1
     # Using SRS box - adjust burst count to get linear intensity sweeps
     #strDescriptor = "Sweep_SRS_BurstCount"
-    # Adjust integration time [1] - see if the gradient shapes change with delay (they dont)
-    strDescriptor = "Sweep_Inter1"
+    # Adjust interframe_Time [1] - see if the gradient shapes change with delay (they dont)
+    #strDescriptor = "Sweep_Inter1"
+    # Adjust integration_time [1] - see if the gradient shapes change with delay
+    strDescriptor = "Sweep_Integ1"
 
     
 
