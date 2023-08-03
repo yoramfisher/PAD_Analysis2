@@ -144,7 +144,7 @@ class dataObject:
         elif self.strDescriptor == "Sweep_Integ1":               
             # How does the slope of dark frames change as we change the interframe1 time? 
             # Set HW parameters
-            self.setname = 'xpad-scan_integ1xxx_B27'
+            self.setname = 'xpad-scan_integ1_B27'
             self.nFrames = 5  # frames Per Run  
           
             # We ARE 'allowed' to change delay param in a run (!)
@@ -190,13 +190,7 @@ class dataObject:
         """ 
         Run multiple Runs - issuing one command (one parameter) that changes
         at each run.
-        params is a dictionary
         overWrite. Set to 1 to delete previous Runs
-        list_commands = [list of string commands to send to HW ]
-        runVaryCommand = string commmand
-        varRange = numpy.arange( , ,) 
-        
-        runFrameCommand - pass in a function to call at each frame in a run
         Return Number of runs completed.
         """
 
@@ -220,7 +214,7 @@ class dataObject:
         for c in self.list_commands:
             if VERBOSE:
                 print(f"**RUN_CMD {c}")
-            res = xd.run_cmd( c  )   
+            res = xd.run_cmd( c  )    # there may be a bug in mmcmd  - returns previous string output.
             if res:
                 raise Exception(" Error ")
 
