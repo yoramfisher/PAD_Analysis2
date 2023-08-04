@@ -36,7 +36,7 @@ VERBOSE = 1 # 0 = quiet, 1 = print some, 2 = print a lot
 #
 # User edit settings
 RAIDPATH="/mnt/raid/keckpad"
-TAKE_DATA=False
+TAKE_DATA=  False #True
 ANALYZE_DATA=True  
 #
 # 
@@ -110,6 +110,35 @@ class dataObject:
             self.fcnToCall = plotLinearity
             self.roiSumNumDims = 3
             self.fcnPlot = prettyPlot
+
+        elif self.strDescriptor == "Sweep_Interframe1":
+            # Setup is using 1 VCSEL inside the integrating sphere. With 
+            # Width Switch; the three rightmost switches (towards power connector) are down:
+            # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
+            # Set HW parameters
+            self.setname = 'xpad-linscan_B100_IF1'
+            self.nFrames = 20  # frames Per Run
+            # SRS is setup with PER of 100us, so 20 takes 2ms
+            self.integrationTime = 3000000 # 3.0 millseconds
+            self.interframeTime = 100 # 100 nSec # gets swept #
+
+            # create a list of commands to send to hardware via mmcmd 
+            unique_commands = [ 
+                "Cap_Select 0xF"       
+            ]
+
+            
+            self.runVaryCommand="InterFrame_NSec" 
+            self.varRange = [200, 500, 1000, 2000, 5000, 10000] 
+            self.runFrameCommand = self.userFunction 
+
+            self.roi = [46, 92, 32, 20]
+            self.NCAPS = 3 # can this be pulled from file?
+            self.fcnToCall = plotLinearity
+            self.roiSumNumDims = 3
+            self.fcnPlot = prettyPlot
+
+        # ****************************************************
 
         # ****************************************************
         elif self.strDescriptor == "Sweep_Inter1":               
@@ -197,6 +226,7 @@ class dataObject:
         setname = self.setname
         #runname = 
         nFrames = self.nFrames
+        varRange = self.varRange
 
         if self.overwrite:
             # delete old runs
@@ -218,8 +248,8 @@ class dataObject:
             if res:
                 raise Exception(" Error ")
 
-        if self.varRange is not None:
-            NRUNS = len(self.varRange)
+        if varRange is not None:
+            NRUNS = len(varRange)
 
         #
         # Start a series of Runs
@@ -228,8 +258,8 @@ class dataObject:
         for i in range(1, NRUNS + 1):     
             # scan a parameter here. Pass in runVaryCommand and varRange
             if self.runVaryCommand:
-                var = self.varRange[0]
-                self.varRange = self.varRange[1:] # remove first element
+                var = varRange[0]
+                varRange = varRange[1:] # remove first element
                 c  = f"{self.runVaryCommand} {var}"
                 res = xd.run_cmd(c)
                 if res:
@@ -487,7 +517,7 @@ def plotLinearity(dobj, data=None, runnum = 0):
 
     for fn in range( nImages ): 
         for cn in range (ncaps):
-            data[runnum, fn,cn] = np.average( foreStack[fn, cn, startPixY:endPixY, startPixX:endPixX] )
+            data[runnum, fn,cn] = np.average( dobj.foreStack[fn, cn, startPixY:endPixY, startPixX:endPixX] )
             #print( fn, cn, roiSum)
 
     return data
@@ -543,7 +573,10 @@ if __name__ == "__main__":
     # Adjust inteframe time [1] - see if the gradient shapes change with delay (they dont)
     #strDescriptor = "Sweep_Inter1"
     # Adjust integration time [1] - see if the gradient shapes change with delay (they dont)
-    strDescriptor = "Sweep_Integ1"
+    #strDescriptor = "Sweep_Integ1"
+    # Like Sweep_SRS_Burscout - but keep VBUF fix - instead scan interframe delay
+    strDescriptor = "Sweep_Interframe1"
+    
 
     dobj = dataObject( strDescriptor, bTakeData=TAKE_DATA, bAnalyzeData=ANALYZE_DATA)
     
