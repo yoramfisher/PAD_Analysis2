@@ -28,6 +28,9 @@ import pickle
 from dg645 import comObject
 from dg645 import DG645
 import time
+from ipywidgets import *
+from IPython.display import display
+
 #
 # Define some globals
 #
@@ -36,8 +39,8 @@ VERBOSE = 1 # 0 = quiet, 1 = print some, 2 = print a lot
 #
 # User edit settings
 RAIDPATH="/mnt/raid/keckpad"
-TAKE_DATA=  False #True
-ANALYZE_DATA=True  
+TAKE_DATA=  True
+ANALYZE_DATA=False # True  
 #
 # 
 #   
@@ -53,6 +56,7 @@ class dataObject:
         self.bTakeData = bTakeData
         self.bAnalyzeData = bAnalyzeData
         self.TEST_ON_MAC = False
+        self.TakeBG = False
 
 
 
@@ -169,6 +173,37 @@ class dataObject:
             self.roiSumNumDims = 4
             self.fcnPlot = prettyAllCapsInALine
 
+        # ****************************************************
+        elif self.strDescriptor == "Sweep_w_Background":
+            # Setup is using 1 VCSEL inside the integrating sphere. With 
+            # Width Switch; the three rightmost switches (towards power connector) are down:
+            # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
+            # Set HW parameters
+            self.TakeBG = True
+            self.setname = 'zzz'
+            self.nFrames = 20  # frames Per Run
+            # SRS is setup with PER of 100us, so 20 takes 2ms
+            self.integrationTime = 3000000 # 3.0 millseconds
+            self.interframeTime = 100 # 100 nSec # gets swept #
+
+            # create a list of commands to send to hardware via mmcmd 
+            unique_commands = [ 
+                "Cap_Select 0x1FF"       
+            ]
+
+            
+            self.runVaryCommand="InterFrame_NSec" 
+            self.varRange = [500] 
+            self.runFrameCommand = self.userFunction 
+
+            self.roi = [0, 7*16, 128, 16]
+            self.NCAPS = 8 # can this be pulled from file?
+            self.fcnToCall = plotEachCapLineout
+            self.roiSumNumDims = 4
+            self.fcnPlot = prettyAllCapsInALine    
+
+        # ****************************************************
+
           # ****************************************************
         elif self.strDescriptor == "Sweep_Integ1":               
             # How does the slope of dark frames change as we change the interframe1 time? 
@@ -211,6 +246,48 @@ class dataObject:
         self.list_commands.extend( unique_commands )
         self.list_commands.append(  f"startset {self.setname}" )
 
+
+
+    #
+    #
+    #
+    def takeBackground(self):
+        setname = self.setname
+        nFrames = self.nFrames
+
+        if self.overwrite:
+            # delete old runs
+            # rm -r "$RAIDPATH"/set-$setname/run-run_*
+            for match in glob(f"{RAIDPATH}/set-{setname}/run-back"):
+                shutil.rmtree(match)
+                print(f"***DELETE RUN {match}")
+      
+        #
+        # Run through list of commands - and send them to HW
+        #
+        for c in self.list_commands:
+            res = xd.run_cmd( c  )    
+            if res:
+                raise Exception(" Error ")
+
+        NRUNS = 1
+
+        runname=f"-bg back"        
+        res = xd.run_cmd( f"startrun {runname}"  )   
+        if res:
+            raise Exception(" Error ") 
+
+        # Optionally set SRS options here and trigger SRS for each frame in the run
+        # Loop <nFrames> times
+        #  
+        self.runCount = 0
+        if self.runFrameCommand:
+            for j in range(nFrames):
+                self.runFrameCommand(j)
+                time.sleep(.5)
+                
+        xd.run_cmd( f"status -wait" )
+        self.runCount += 1
 
     #
     # 
@@ -305,6 +382,9 @@ class dataObject:
   
         # Create new Runs
         # Returns a dictionary
+        if self.takeBackground:
+            self.takeBackground()
+
         takeDataRet = self.takeData( )
         return takeDataRet    
             
@@ -568,14 +648,20 @@ if __name__ == "__main__":
     # Code to be executed when the script is run directly
     print("Start.")
    
+
+    box = Checkbox(False, description='checker')
+    display(box)
+
     # Using SRS box - adjust burst count to get linear intensity sweeps
     #strDescriptor = "Sweep_SRS_BurstCount"
     # Adjust inteframe time [1] - see if the gradient shapes change with delay (they dont)
     #strDescriptor = "Sweep_Inter1"
     # Adjust integration time [1] - see if the gradient shapes change with delay (they dont)
     #strDescriptor = "Sweep_Integ1"
-    # Like Sweep_SRS_Burscout - but keep VBUF fix - instead scan interframe delay
-    strDescriptor = "Sweep_Interframe1"
+    # Like Sweep_SRS_Burscount - but keep VBUF fix - instead scan interframe delay
+    #strDescriptor = "Sweep_Interframe1"
+    # Sweep linearity with SRS - and also take a background
+    strDescriptor = "Sweep_w_Background"
     
 
     dobj = dataObject( strDescriptor, bTakeData=TAKE_DATA, bAnalyzeData=ANALYZE_DATA)
