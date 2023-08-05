@@ -670,7 +670,7 @@ if __name__ == "__main__":
     print("Start.")
    
     # 
-    # Create a list of possible actions - and displayu a modal
+    # Create a list of possible actions - and display a modal
     #
     lot = defineListOfTests()
     ui = UI_utils.UIPage( lot )
@@ -682,7 +682,7 @@ if __name__ == "__main__":
 
 
     #
-    # Do the thing
+    # Do the things
     #
     dobj = dataObject( strDescriptor, bTakeData=bTakeData, bAnalyzeData=bAnalyzeData)
     
