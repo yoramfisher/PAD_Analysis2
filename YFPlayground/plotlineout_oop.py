@@ -674,6 +674,10 @@ if __name__ == "__main__":
     lot = defineListOfTests()
     ui = UI_utils.UIPage( lot )
     ui.show()
+    if ui.cancelled:
+        exit(0)
+
+        
     strDescriptor = ui.selectedText
     bTakeData,bAnalyzeData = ui.selectedActions
 

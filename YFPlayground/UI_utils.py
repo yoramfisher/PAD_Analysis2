@@ -13,6 +13,7 @@ class UIPage:
         # assert somehow that tup_Name_Descrip is list of string pairs
         self.tup_Name_Descrip = tup_Name_Descrip
         self.selectedActions = () # empty tuple
+        self.cancelled = False
 
           # Load previous selections from the configuration file
         self.selections = self.load_selections()
@@ -27,18 +28,26 @@ class UIPage:
         
         d = self.selections
         
-        self.cb_TakeData = tk.BooleanVar(value= d.get("cb0") )
-        self.cb_AnalyzeData = tk.BooleanVar( value = d.get("cb1") )  
+        self.cb_TakeData = tk.BooleanVar(value= d.get("cb0", False) )
+        self.cb_AnalyzeData = tk.BooleanVar( value = d.get("cb1", False) )  
 
-        self.lb_ScriptToRun = tk.Listbox( self.root )
+        self.lb_ScriptToRun = tk.Listbox( self.root, width=30 )
+
+        # Create a label to display the selection
+        self.selection_label = tk.Label(self.root, text="<Description>", wraplength=200)
+         # Create a label to display the result
+        self.result_label = ttk.Label(self.root, text="")
+        self.cancelButton = tk.Button(self.root, text="Cancel", 
+            command=self.btnCancel_click)
+
         self.buildList()
             
         self.lb_ScriptToRun.select_clear(0, tk.END)
         n = d.get("lb1")
         self.lb_ScriptToRun.selection_set(n if n else 0 )
-        
-
+     
         self.checkboxes = [ self.cb_TakeData, self.cb_AnalyzeData]
+        self.on_select(None)
         
        
 
@@ -47,6 +56,11 @@ class UIPage:
         self.selectedActions = self.cb_TakeData.get(), self.cb_AnalyzeData.get()
         self.root.destroy()
 
+
+
+    def btnCancel_click(self):
+        self.cancelled = True
+        self.root.destroy()
 
 
     def buildList(self):
@@ -90,7 +104,7 @@ class UIPage:
         lbl = self.selection_label
         n = lb.curselection()
         descrip_text = self.tup_Name_Descrip[n[0]][1]
-        lbl.config(text=f"Selected: {descrip_text}")
+        lbl.config(text=f"Description: {descrip_text}")
         self.selectedText = self.tup_Name_Descrip[ n[0] ][0]
     
     def show(self):
@@ -120,17 +134,16 @@ class UIPage:
         lbl1.grid(row=r); r += 1
 
 
-
-        # Create a label to display the selection
-        self.selection_label = tk.Label(root, text="<Description>", wraplength=200)
-
         lb.grid(row=r, column=0, columnspan=2, padx=20); r += 1        
-        self.selection_label.grid(row=r, columnspan=2); r += 1
-
-
-        # Create a label to display the result
-        self.result_label = ttk.Label(root, text="")
+        self.selection_label.grid(row=r, columnspan=2); r += 1       
         self.result_label.grid(row=r, columnspan=2); r +=1
+        self.cancelButton.grid(row=r, columnspan=2); r +=1
+
+        # Create an empty label to add space under the button
+        #empty_label = tk.Label(root, text="", height=1)  # Adjust the height as needed
+        #empty_label.grid(row=r, column=0); r += 1
+
+        root.grid_rowconfigure( r-1, minsize=40)  # Adjust minsize as needed
 
         # Start the GUI event loop
         root.mainloop()
@@ -162,6 +175,3 @@ if __name__ == "__main__":
     
     ui = UIPage( lot )
     ui.show()
-
-    # try
-    #  ui.saveOptions()
