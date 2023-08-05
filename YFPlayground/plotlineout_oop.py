@@ -12,7 +12,7 @@
 # v 0.3 7/12/23 YF Take_Data works well.
 # v 0.4 7/31/23 OOP the S out of it. You should be able to edit createObject() to generate
 #  most data runs where one thing is varied per Run and another thing is varied per frame.
-#
+# v 0.5 8/5/23 tkinter graphics
 
 import numpy as np
 import Big_keck_load as BKL
@@ -21,15 +21,17 @@ import shutil
 import matplotlib.pyplot as plt
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 import sys
-import tkinter as tk
+#import tkinter as tk
 import xpad_utils as xd
 from glob import glob
 import pickle
 from dg645 import comObject
 from dg645 import DG645
 import time
-from ipywidgets import *
-from IPython.display import display
+#from ipywidgets import *
+#from IPython.display import display
+import UI_utils
+
 
 #
 # Define some globals
@@ -39,8 +41,7 @@ VERBOSE = 1 # 0 = quiet, 1 = print some, 2 = print a lot
 #
 # User edit settings
 RAIDPATH="/mnt/raid/keckpad"
-TAKE_DATA=  True
-ANALYZE_DATA=False # True  
+
 #
 # 
 #   
@@ -643,28 +644,49 @@ def plotEachCapLineout(dobj,  data=None, runnum = 0):
 
 
 
+
+
+
+
+def defineListOfTests():
+    """
+    Create a list of (string,string) that DEFINES the 
+    Take or Analyze data routines, and give each a text description
+    """
+
+    lot = []
+    lot.append( ("Sweep_SRS_BurstCount", "Using SRS box - adjust burst count to get linear intensity sweeps") )
+    lot.append( ("Sweep_Inter1", "Adjust inteframe time [1] - see if the gradient shapes change with delay (they dont)") )
+    lot.append( ("Sweep_Integ1", "Adjust integration time [1] - see if the gradient shapes change with delay (they dont)") )
+    lot.append( ("Sweep_w_Background", "Sweep linearity with SRS - and also take a background") )
+    
+    return lot
+
+
+               
+
+
 # Entry point of the script
 if __name__ == "__main__":
     # Code to be executed when the script is run directly
     print("Start.")
    
+    # 
+    # Create a list of possible actions - and displayu a modal
+    #
+    lot = defineListOfTests()
+    ui = UI_utils.UIPage( lot )
+    ui.show()
+    strDescriptor = ui.selectedText
+    bTakeData,bAnalyzeData = ui.selectedActions
 
-    box = Checkbox(False, description='checker')
-    display(box)
+    print(f"I will run {strDescriptor} and " + "Take Data" if bTakeData else "" + "  Analyze Data" if bAnalyzeData else "" )
+     
 
-    # Using SRS box - adjust burst count to get linear intensity sweeps
-    #strDescriptor = "Sweep_SRS_BurstCount"
-    # Adjust inteframe time [1] - see if the gradient shapes change with delay (they dont)
-    #strDescriptor = "Sweep_Inter1"
-    # Adjust integration time [1] - see if the gradient shapes change with delay (they dont)
-    #strDescriptor = "Sweep_Integ1"
-    # Like Sweep_SRS_Burscount - but keep VBUF fix - instead scan interframe delay
-    #strDescriptor = "Sweep_Interframe1"
-    # Sweep linearity with SRS - and also take a background
-    strDescriptor = "Sweep_w_Background"
-    
-
-    dobj = dataObject( strDescriptor, bTakeData=TAKE_DATA, bAnalyzeData=ANALYZE_DATA)
+    #
+    # Do the thing
+    #
+    dobj = dataObject( strDescriptor, bTakeData=bTakeData, bAnalyzeData=bAnalyzeData)
     
     if dobj.bTakeData:
         ret = dobj.Take_Data()
@@ -677,8 +699,6 @@ if __name__ == "__main__":
        
 
     print("Done!")     
-
-
 
 
 
