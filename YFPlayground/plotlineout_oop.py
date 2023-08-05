@@ -115,7 +115,8 @@ class dataObject:
             self.fcnToCall = plotLinearity
             self.roiSumNumDims = 3
             self.fcnPlot = prettyPlot
-
+  
+        # ****************************************************
         elif self.strDescriptor == "Sweep_Interframe1":
             # Setup is using 1 VCSEL inside the integrating sphere. With 
             # Width Switch; the three rightmost switches (towards power connector) are down:
@@ -142,8 +143,6 @@ class dataObject:
             self.fcnToCall = plotLinearity
             self.roiSumNumDims = 3
             self.fcnPlot = prettyPlot
-
-        # ****************************************************
 
         # ****************************************************
         elif self.strDescriptor == "Sweep_Inter1":               
@@ -204,8 +203,6 @@ class dataObject:
             self.fcnPlot = prettyAllCapsInALine    
 
         # ****************************************************
-
-          # ****************************************************
         elif self.strDescriptor == "Sweep_Integ1":               
             # How does the slope of dark frames change as we change the interframe1 time? 
             # Set HW parameters
@@ -652,6 +649,7 @@ def defineListOfTests():
     """
     Create a list of (string,string) that DEFINES the 
     Take or Analyze data routines, and give each a text description
+    NOTE that the string MUST match those in createObject
     """
 
     lot = []
@@ -681,7 +679,7 @@ if __name__ == "__main__":
     bTakeData,bAnalyzeData = ui.selectedActions
 
     print(f"I will run {strDescriptor} and " + "Take Data" if bTakeData else "" + "  Analyze Data" if bAnalyzeData else "" )
-     
+
 
     #
     # Do the thing
