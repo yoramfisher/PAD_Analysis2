@@ -5,3 +5,4 @@
 *.csv
 *.pickle
 .DS_Store
+config.json

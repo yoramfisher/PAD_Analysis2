@@ -6,6 +6,7 @@
 # v 0.1 8/5/23 YF - Inception
 import tkinter as tk
 import tkinter.ttk as ttk
+import json
 
 class UIPage:
     def __init__(self, tup_Name_Descrip):
@@ -13,15 +14,39 @@ class UIPage:
         self.tup_Name_Descrip = tup_Name_Descrip
         self.selectedActions = () # empty tuple
 
+          # Load previous selections from the configuration file
+        self.selections = self.load_selections()
+
         self.root = tk.Tk()
         self.root.title("Choose action")
+        # Bind the close event to the on_closing function
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
         # Create a variable to hold the checkbox state
         
-        self.cb_TakeData = tk.BooleanVar()
-        self.cb_AnalyzeData = tk.BooleanVar()  
+        
+        d = self.selections
+        
+        self.cb_TakeData = tk.BooleanVar(value= d.get("cb0") )
+        self.cb_AnalyzeData = tk.BooleanVar( value = d.get("cb1") )  
+
         self.lb_ScriptToRun = tk.Listbox( self.root )
         self.buildList()
+            
+        self.lb_ScriptToRun.select_clear(0, tk.END)
+        n = d.get("lb1")
+        self.lb_ScriptToRun.selection_set(n if n else 0 )
+        
+
+        self.checkboxes = [ self.cb_TakeData, self.cb_AnalyzeData]
+        
        
+
+    def on_closing(self):
+        self.saveOptions()
+        self.selectedActions = self.cb_TakeData.get(), self.cb_AnalyzeData.get()
+        self.root.destroy()
+
 
 
     def buildList(self):
@@ -53,7 +78,7 @@ class UIPage:
             txtA = txtA + " & "
 
         self.result_label.config(text=f"{txtA} {txtB}")
-        self.selectedActions = self.cb_TakeData.get(), self.cb_AnalyzeData.get()
+       
                                  
 
     def on_select(self,event):
@@ -110,6 +135,25 @@ class UIPage:
         # Start the GUI event loop
         root.mainloop()
 
+
+
+    def load_selections(self):
+        try:
+            with open("config.json", "r") as config_file:
+                return json.load(config_file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {} 
+        
+
+    def saveOptions(self):
+        self.selections = {f"cb{idx}": checkbox_var.get() for idx, checkbox_var in enumerate(self.checkboxes)}
+        self.selections["lb1"] = self.lb_ScriptToRun.curselection()[0]
+
+        with open("config.json", "w") as config_file:
+            json.dump(self.selections, config_file)
+
+
+
 # Entry point of the script
 if __name__ == "__main__":
     lot = []
@@ -118,3 +162,6 @@ if __name__ == "__main__":
     
     ui = UIPage( lot )
     ui.show()
+
+    # try
+    #  ui.saveOptions()
