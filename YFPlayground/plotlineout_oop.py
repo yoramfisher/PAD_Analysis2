@@ -255,7 +255,6 @@ class dataObject:
 
         if self.overwrite:
             # delete old runs
-            # rm -r "$RAIDPATH"/set-$setname/run-run_*
             for match in glob(f"{RAIDPATH}/set-{setname}/run-back"):
                 shutil.rmtree(match)
                 print(f"***DELETE RUN {match}")
@@ -380,7 +379,7 @@ class dataObject:
   
         # Create new Runs
         # Returns a dictionary
-        if self.takeBackground:
+        if self.TakeBG:
             self.takeBackground()
 
         takeDataRet = self.takeData( )
