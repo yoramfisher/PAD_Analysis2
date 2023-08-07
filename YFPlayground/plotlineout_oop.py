@@ -14,6 +14,26 @@
 #  most data runs where one thing is varied per Run and another thing is varied per frame.
 # v 0.5 8/5/23 tkinter graphics
 
+#
+# INSTRUCTIONS
+#
+# Power on
+# In the command line client type:YON
+#* client>YON
+# Power_Control set to 1
+# HV_ENABLE set to 1
+# HV_OUTPUT_ENABLE set to 1
+# DFPGA_DAC_OUT_VGUARD[0 - 7] set to 822.0 mV
+# DFPGA_DAC_OUT_VINJ[0 - 7] set to 1644.0 mV
+# DFPGA_DAC_OUT_VREF_BUF[0 - 7] set to 1233.0 mV
+# DFPGA_DAC_OUT_VREF_BP[0 - 7] set to 1233.0 mV
+# DFPGA_DAC_OUT_VREF[0 - 7] set to 1849.0 mV
+# DFPGA_DAC_OUT_V_ISS_BUF_PIX[0 - 7] set to 719.0 mV
+# DFPGA_DAC_OUT_V_ISS_AB[0 - 7] set to 668.0 mV
+# DFPGA_DAC_OUT_V_ISS_BUF[0 - 7] set to 1297.0 mV
+# Exposure_Mode set to 1 (One trigger for all selected caps)
+# Readout_Mode set to 1 (Wait for Readout Delay)
+
 import numpy as np
 import Big_keck_load as BKL
 import os
@@ -52,12 +72,13 @@ class dataObject:
                  bTakeData=False, bAnalyzeData = False):
         self.strDescriptor = strDescriptor
         self.dg = None  # Optional Delay Generator
+        self.TakeBG = False
+
         self.createObject()
         self.overwrite = True  # Set to true to delete previous runs
         self.bTakeData = bTakeData
         self.bAnalyzeData = bAnalyzeData
         self.TEST_ON_MAC = False
-        self.TakeBG = False
 
 
 
@@ -180,11 +201,13 @@ class dataObject:
             # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
             # Set HW parameters
             self.TakeBG = True
+            self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
+            self.MessageAfterBackground = "Plug the IR strobe trigger now"
             self.setname = 'zzz'
             self.nFrames = 20  # frames Per Run
             # SRS is setup with PER of 100us, so 20 takes 2ms
             self.integrationTime = 3000000 # 3.0 millseconds
-            self.interframeTime = 100 # 100 nSec # gets swept #
+            self.interframeTime = 500 
 
             # create a list of commands to send to hardware via mmcmd 
             unique_commands = [ 
@@ -196,7 +219,7 @@ class dataObject:
             self.varRange = [500] 
             self.runFrameCommand = self.userFunction 
 
-            self.roi = [0, 7*16, 128, 16]
+            self.roi = [4, 0*16, 128, 16]
             self.NCAPS = 8 # can this be pulled from file?
             self.fcnToCall = plotEachCapLineout
             self.roiSumNumDims = 4
@@ -259,6 +282,7 @@ class dataObject:
                 shutil.rmtree(match)
                 print(f"***DELETE RUN {match}")
       
+            
         #
         # Run through list of commands - and send them to HW
         #
@@ -355,6 +379,9 @@ class dataObject:
             xd.run_cmd( f"status -wait" )
             self.runCount += 1
 
+
+       
+
         return  self.runCount
     
     
@@ -380,11 +407,20 @@ class dataObject:
         # Create new Runs
         # Returns a dictionary
         if self.TakeBG:
+            if self.MessageBeforeBackground:
+                input(self.MessageBeforeBackground)
+
             self.takeBackground()
+
+            if self.MessageAfterBackground:
+                input(self.MessageAfterBackground)
 
         takeDataRet = self.takeData( )
         return takeDataRet    
-            
+
+    #
+    # 
+    #         
     def Analyze_Data(self):
         """
         Load up the runs, and analyze
@@ -395,15 +431,22 @@ class dataObject:
         NCAPS = self.NCAPS
        
         roiSum = None
+
+        if self.TakeBG:
+            backFile = f'/mnt/raid/keckpad/set-{setname}/run-back/frames/back_00000001.raw'
+            self.back =  BKL.KeckFrame( backFile )
+
         for runnum in range(NRUNS):
             runname = f"run_{runnum+1}"
             if self.TEST_ON_MAC: # Local Mac testing!
                 foreFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' # check not sure...
                 
             else:
-                foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw' # check not sure...
+                foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw'
             
             self.fore = BKL.KeckFrame( foreFile )
+
+
 
             numImagesF = self.fore.numImages 
             if roiSum is None:
@@ -610,12 +653,18 @@ def plotEachCapLineout(dobj,  data=None, runnum = 0):
    
    
     fore = dobj.fore
+    if dobj.back:
+        back = dobj.back
     roi = dobj.roi
 
     ncaps = dobj.NCAPS
 
     for fIdex in range( fore.numImages):
         (mdF,dataF) = fore.getFrame()
+        if back:
+            (mdB,dataB) = back.getFrame()
+            dataF = dataF - dataB #  Put F-B in F as a kludge.
+
         frameNum = fIdex // ncaps  # not a typo "//" is integer division 
         dataArray = np.resize(dataF,[512,512])
         dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
