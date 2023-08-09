@@ -598,7 +598,7 @@ def prettyAllCapsInALine(data, title):
             elif n%3 == 2:
                 clr = (0,0,x)
 
-            ax.plot( range(len(d)), d, color=clr,
+            ax.plot( range(len(d)), d, color=clr, linewidth=0.5,
             label=f"Run{n}" if f ==0 else "" )
 
 
