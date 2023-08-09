@@ -73,6 +73,8 @@ class dataObject:
         self.strDescriptor = strDescriptor
         self.dg = None  # Optional Delay Generator
         self.TakeBG = False
+        self.MessageBeforeBackground = None
+        self.MessageAfterBackground = None
 
         self.createObject()
         self.overwrite = True  # Set to true to delete previous runs
@@ -169,11 +171,13 @@ class dataObject:
         elif self.strDescriptor == "Sweep_Inter1":               
             # How does the slope of dark frames change as we change the interframe1 time? 
             # Set HW parameters
-            self.setname = 'xpad-scan_inter1_B27'
+            #self.setname = 'xpad-scan_inter1_B27_swapBP_OR_100_100s'
+            self.setname = 'xpad-scan_inter1_B27_oldRTL'
             self.nFrames = 10  # frames Per Run  
           
             # We ARE 'allowed' to change delay param in a run (!)
             
+            #self.integrationTime = 50 # 100ns
             self.integrationTime = 100 # 100ns
             self.interframeTime = 100  # 100 ns - initial same on all.
             
@@ -183,10 +187,12 @@ class dataObject:
             ]
            
             self.runVaryCommand="Readout_Delay" 
-            self.varRange = [0,50,100,150]
+            #self.varRange = [0,50,100,150]
+            self.varRange = [50]
             self.runFrameCommand = self.userFunctionB
-            self.innerVarRange = [100,1100,2100,3100,4100,5100,6100,7100,8100,9100]
-            self.innerVarCommand ="Interframe_nsec[1]" # [0] does not work correctly BUG!
+            self.innerVarRange = [100,150,200,250,300, 350, 400, 450, 500, 550]
+            #self.innerVarCommand ="Interframe_nsec[1]" # [0] does not work correctly BUG!
+            self.innerVarCommand ="Interframe_nsec" 
 
             self.roi = [0, 7*16, 128, 16]
             self.NCAPS = 8 # can this be pulled from file?
@@ -203,7 +209,7 @@ class dataObject:
             self.TakeBG = True
             self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
             self.MessageAfterBackground = "Plug the IR strobe trigger now"
-            self.setname = 'zzz'
+            self.setname = 'xpad-test1'
             self.nFrames = 20  # frames Per Run
             # SRS is setup with PER of 100us, so 20 takes 2ms
             self.integrationTime = 3000000 # 3.0 millseconds
@@ -216,7 +222,7 @@ class dataObject:
 
             
             self.runVaryCommand="InterFrame_NSec" 
-            self.varRange = [500] 
+            self.varRange = [500,5000,50000,500000,5000000] 
             self.runFrameCommand = self.userFunction 
 
             self.roi = [4, 0*16, 128, 16]
@@ -432,9 +438,7 @@ class dataObject:
        
         roiSum = None
 
-        if self.TakeBG:
-            backFile = f'/mnt/raid/keckpad/set-{setname}/run-back/frames/back_00000001.raw'
-            self.back =  BKL.KeckFrame( backFile )
+        
 
         for runnum in range(NRUNS):
             runname = f"run_{runnum+1}"
@@ -445,6 +449,9 @@ class dataObject:
                 foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw'
             
             self.fore = BKL.KeckFrame( foreFile )
+            if self.TakeBG:
+                backFile = f'/mnt/raid/keckpad/set-{setname}/run-back/frames/back_00000001.raw'
+                self.back =  BKL.KeckFrame( backFile )
 
 
 
@@ -651,9 +658,9 @@ def plotEachCapLineout(dobj,  data=None, runnum = 0):
     stores the average value over the ROI.
     """
    
-   
+    back = None
     fore = dobj.fore
-    if dobj.back:
+    if hasattr(dobj, "back"):
         back = dobj.back
     roi = dobj.roi
 
