@@ -67,7 +67,7 @@ class UIPage:
         self.root.destroy()
 
     def btnOK_click(self):
-        self.root.destroy()
+        self.on_closing()
 
     def buildList(self):
         lb = self.lb_ScriptToRun

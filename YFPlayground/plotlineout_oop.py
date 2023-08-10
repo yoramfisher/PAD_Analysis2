@@ -94,7 +94,7 @@ class dataObject:
         
         print(f"Called userFunction n={nLoop}")
         self.dg.counter  = nLoop + 1
-        c  = f"{self.innerVarCommand} {self.innerVarRange[nLoop]}"  
+        c  = f"{self.innerVarCommand} {self.innerVarList[nLoop]}"  
         
         #s = f"BURC {self.dg.counter}" # Set the burst Count
         self.dg.send(c);
@@ -108,7 +108,7 @@ class dataObject:
         Send a command to xPAD at each frame.
         """ 
         print(f"Called userFunctionB n={nLoop}")
-        c  = f"{self.innerVarCommand} {self.innerVarRange[nLoop]}"  
+        c  = f"{self.innerVarCommand} {self.innerVarList[nLoop]}"  
         
         res = xd.run_cmd(c)
         self.dg.doTrigger()
@@ -134,11 +134,11 @@ class dataObject:
 
             
             self.runVaryCommand="DFPGA_DAC_OUT_VREF_BUF" 
-            self.varRange = [1000, 1200, 1400, 1600, 1800, 2000] 
+            self.varList = [1000, 1200, 1400, 1600, 1800, 2000] 
             self.runFrameCommand = self.usrFunction_DGCmd 
             
             self.innerVarCommand ="BURC" 
-            self.innerVarRange = [i for i in range(1, self.nFrames)]
+            self.innerVarList = [i for i in range(1, self.nFrames)]
             
             self.roi = [46, 92, 32, 20]
             self.NCAPS = 3 # can this be pulled from file?
@@ -165,11 +165,11 @@ class dataObject:
 
             
             self.runVaryCommand="InterFrame_NSec" 
-            self.varRange = [200, 500, 1000, 2000, 5000, 10000] 
+            self.varList = [200, 500, 1000, 2000, 5000, 10000] 
             self.runFrameCommand = self.usrFunction_DGCmd 
 
             self.innerVarCommand ="BURC" 
-            self.innerVarRange = [i for i in range(1, self.nFrames)]
+            self.innerVarList = [i for i in range(1, self.nFrames)]
 
             self.roi = [46, 92, 32, 20]
             self.NCAPS = 3 # can this be pulled from file?
@@ -197,10 +197,10 @@ class dataObject:
             ]
            
             self.runVaryCommand="Readout_Delay" 
-            #self.varRange = [0,50,100,150]
-            self.varRange = [50]
+            #self.varList = [0,50,100,150]
+            self.varList = [50]
             self.runFrameCommand = self.userFunctionB
-            self.innerVarRange = [100,150,200,250,300, 350, 400, 450, 500, 550]
+            self.innerVarList = [100,150,200,250,300, 350, 400, 450, 500, 550]
             #self.innerVarCommand ="Interframe_nsec[1]" # [0] does not work correctly BUG!
             self.innerVarCommand ="Interframe_nsec" 
 
@@ -232,11 +232,11 @@ class dataObject:
 
             
             self.runVaryCommand="InterFrame_NSec" 
-            self.varRange = [500,5000,50000,500000,5000000] 
+            self.varList = [500,5000,50000,500000,5000000] 
             self.runFrameCommand = self.usrFunction_DGCmd 
 
             self.innerVarCommand ="BURC" 
-            self.innerVarRange = [i for i in range(1, self.nFrames)]
+            self.innerVarList = [i for i in range(1, self.nFrames)]
 
             self.roi = [4, 0*16, 128, 16]
             self.NCAPS = 8 # can this be pulled from file?
@@ -266,9 +266,10 @@ class dataObject:
             ]
 
             self.runVaryCommand="Readout_Delay"  # dummy not really scanning anything
-            self.varRange = [50]
+            self.varList = [50]
             self.runFrameCommand = self.userFunctionB
-            self.innerVarRange = [i for i in range(1,self.nFrames)] 
+            # step through 500ns offset, increment A by 100.005us steps. 
+            self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames-1)] 
             self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
  
             self.roi = [4, 0*16, 128, 16]
@@ -296,9 +297,9 @@ class dataObject:
             ]
            
             self.runVaryCommand="Readout_Delay"
-            self.varRange = [0,50,100,150]
+            self.varList = [0,50,100,150]
             self.runFrameCommand = self.userFunctionB
-            self.innerVarRange = [100,2100,6100,10100,20100]
+            self.innerVarList = [100,2100,6100,10100,20100]
             self.innerVarCommand ="Integration_nsec[1]" # [0] does not work correctly BUG!
 
             self.roi = [0, 7*16, 128, 16]
@@ -377,7 +378,7 @@ class dataObject:
         setname = self.setname
         #runname = 
         nFrames = self.nFrames
-        varRange = self.varRange
+        varRange = self.varList
 
         if self.overwrite:
             # delete old runs
@@ -480,7 +481,7 @@ class dataObject:
         """
 
         setname = self.setname
-        NRUNS = len(self.varRange) 
+        NRUNS = len(self.varList) 
         NCAPS = self.NCAPS
        
         roiSum = None
@@ -519,7 +520,7 @@ class dataObject:
             roiSum = self.fcnToCall( self, data = roiSum, runnum = runnum)
 
             if self.runVaryCommand:
-                title = f"{self.runVaryCommand} {self.varRange}"
+                title = f"{self.runVaryCommand} {self.varList}"
         
         #
         #  fcnPlot is the function to generate plot. It is defined in the IF's above.
