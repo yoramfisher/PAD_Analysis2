@@ -39,6 +39,10 @@ class UIPage:
         self.result_label = ttk.Label(self.root, text="")
         self.cancelButton = tk.Button(self.root, text="Cancel", 
             command=self.btnCancel_click)
+        
+        self.OKButton = tk.Button(self.root, text="OK",  width=10, fg="green", background='#3E4149',
+            command=self.btnOK_click)
+        
 
         self.buildList()
             
@@ -62,6 +66,8 @@ class UIPage:
         self.cancelled = True
         self.root.destroy()
 
+    def btnOK_click(self):
+        self.root.destroy()
 
     def buildList(self):
         lb = self.lb_ScriptToRun
@@ -137,7 +143,8 @@ class UIPage:
         lb.grid(row=r, column=0, columnspan=2, padx=20); r += 1        
         self.selection_label.grid(row=r, columnspan=2); r += 1       
         self.result_label.grid(row=r, columnspan=2); r +=1
-        self.cancelButton.grid(row=r, columnspan=2); r +=1
+        self.cancelButton.grid(row=r, column=0);
+        self.OKButton.grid(row=r, column=1);   r +=1
 
         # Create an empty label to add space under the button
         #empty_label = tk.Label(root, text="", height=1)  # Adjust the height as needed
@@ -175,3 +182,4 @@ if __name__ == "__main__":
     
     ui = UIPage( lot )
     ui.show()
+    

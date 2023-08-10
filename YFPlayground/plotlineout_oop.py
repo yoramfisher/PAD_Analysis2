@@ -87,14 +87,17 @@ class dataObject:
     #
     # userFunction is called for each frame of a run ( assumes an external trigger )
     #
-    def userFunction( self,nLoop ):
+    def usrFunction_DGCmd( self,nLoop ):
         """ nLoop is the frame number. 
+        Send a command to DG SRS at each frame - assumes Ext trigger.
         """
         
         print(f"Called userFunction n={nLoop}")
         self.dg.counter  = nLoop + 1
-        s = f"BURC {self.dg.counter}" # Set the burst Count
-        self.dg.send(s);
+        c  = f"{self.innerVarCommand} {self.innerVarRange[nLoop]}"  
+        
+        #s = f"BURC {self.dg.counter}" # Set the burst Count
+        self.dg.send(c);
         self.dg.doTrigger()
         
     #
@@ -102,7 +105,8 @@ class dataObject:
     #
     def userFunctionB( self, nLoop ):
         """ nLoop is the frame number. 
-        """
+        Send a command to xPAD at each frame.
+        """ 
         print(f"Called userFunctionB n={nLoop}")
         c  = f"{self.innerVarCommand} {self.innerVarRange[nLoop]}"  
         
@@ -131,8 +135,11 @@ class dataObject:
             
             self.runVaryCommand="DFPGA_DAC_OUT_VREF_BUF" 
             self.varRange = [1000, 1200, 1400, 1600, 1800, 2000] 
-            self.runFrameCommand = self.userFunction 
-
+            self.runFrameCommand = self.usrFunction_DGCmd 
+            
+            self.innerVarCommand ="BURC" 
+            self.innerVarRange = [i for i in range(1, self.nFrames)]
+            
             self.roi = [46, 92, 32, 20]
             self.NCAPS = 3 # can this be pulled from file?
             self.fcnToCall = plotLinearity
@@ -159,7 +166,10 @@ class dataObject:
             
             self.runVaryCommand="InterFrame_NSec" 
             self.varRange = [200, 500, 1000, 2000, 5000, 10000] 
-            self.runFrameCommand = self.userFunction 
+            self.runFrameCommand = self.usrFunction_DGCmd 
+
+            self.innerVarCommand ="BURC" 
+            self.innerVarRange = [i for i in range(1, self.nFrames)]
 
             self.roi = [46, 92, 32, 20]
             self.NCAPS = 3 # can this be pulled from file?
@@ -223,13 +233,50 @@ class dataObject:
             
             self.runVaryCommand="InterFrame_NSec" 
             self.varRange = [500,5000,50000,500000,5000000] 
-            self.runFrameCommand = self.userFunction 
+            self.runFrameCommand = self.usrFunction_DGCmd 
+
+            self.innerVarCommand ="BURC" 
+            self.innerVarRange = [i for i in range(1, self.nFrames)]
 
             self.roi = [4, 0*16, 128, 16]
             self.NCAPS = 8 # can this be pulled from file?
             self.fcnToCall = plotEachCapLineout
             self.roiSumNumDims = 4
             self.fcnPlot = prettyAllCapsInALine    
+
+        # ****************************************************
+        elif self.strDescriptor == "Move_IR_Along_Caps":
+            # Setup is using 1 VCSEL  - direct imaged. NO integrating sphere. With 
+            # Width Switch; XXX TODO the three rightmost switches (towards power connector) are down:
+            # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
+            # SRS Burst Mode: Off. B=A+1us.   Vary A to move pulse into each CAP exposure 
+            # Set HW parameters
+            self.TakeBG = True
+            self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
+            self.MessageAfterBackground = "Plug the IR strobe trigger now"
+            self.setname = 'xpad-test1'
+            self.nFrames = 10  # frames Per Run
+            # SRS is setup as single pulse. 
+            self.integrationTime = 100000 # 100 us
+            self.interframeTime = 500 
+
+            # create a list of commands to send to hardware via mmcmd 
+            unique_commands = [ 
+                "Cap_Select 0x1FF"       
+            ]
+
+            self.runVaryCommand="Readout_Delay"  # dummy not really scanning anything
+            self.varRange = [50]
+            self.runFrameCommand = self.userFunctionB
+            self.innerVarRange = [i for i in range(1,self.nFrames)] 
+            self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
+ 
+            self.roi = [4, 0*16, 128, 16]
+            self.NCAPS = 8 # can this be pulled from file?
+            self.fcnToCall = plotEachCapLineout
+            self.roiSumNumDims = 4
+            self.fcnPlot = prettyAllCapsInALine 
+
 
         # ****************************************************
         elif self.strDescriptor == "Sweep_Integ1":               
@@ -712,6 +759,7 @@ def defineListOfTests():
     lot.append( ("Sweep_Inter1", "Adjust inteframe time [1] - see if the gradient shapes change with delay (they dont)") )
     lot.append( ("Sweep_Integ1", "Adjust integration time [1] - see if the gradient shapes change with delay (they dont)") )
     lot.append( ("Sweep_w_Background", "Sweep linearity with SRS - and also take a background") )
+    lot.append( ("Move_IR_Along_Caps", "SRS single bright pulse, moves from cap1 to cap 8") )
     
     return lot
 
