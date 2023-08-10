@@ -254,7 +254,7 @@ class dataObject:
             self.TakeBG = True
             self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
             self.MessageAfterBackground = "Plug the IR strobe trigger now"
-            self.setname = 'xpad-test1'
+            self.setname = 'xpad-test-1pulse-per-cap'
             self.nFrames = 10  # frames Per Run
             # SRS is setup as single pulse. 
             self.integrationTime = 100000 # 100 us
