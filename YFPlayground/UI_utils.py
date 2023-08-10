@@ -40,7 +40,7 @@ class UIPage:
         self.cancelButton = tk.Button(self.root, text="Cancel", 
             command=self.btnCancel_click)
         
-        self.OKButton = tk.Button(self.root, text="OK",  width=10, fg="green", background='#3E4149',
+        self.OKButton = tk.Button(self.root, text="OK",  width=10, background='#108810',
             command=self.btnOK_click)
         
 

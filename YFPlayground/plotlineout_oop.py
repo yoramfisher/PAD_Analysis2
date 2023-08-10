@@ -268,9 +268,9 @@ class dataObject:
 
             self.runVaryCommand="Readout_Delay"  # dummy not really scanning anything
             self.varList = [50]
-            self.runFrameCommand = self.userFunctionB
+            self.runFrameCommand = self.usrFunction_DGCmd
             # step through 500ns offset, increment A by 100.005us steps. 
-            self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames-1)] 
+            self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames)] 
             self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
  
             self.roi = [4, 0*16, 128, 16]
