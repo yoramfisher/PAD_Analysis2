@@ -209,7 +209,8 @@ class dataObject:
             self.TakeBG = True
             self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
             self.MessageAfterBackground = "Plug the IR strobe trigger now"
-            self.setname = 'xpad-test1'
+            #self.setname = 'xpad-test1'
+            self.setname = 'xpad-test2'
             self.nFrames = 20  # frames Per Run
             # SRS is setup with PER of 100us, so 20 takes 2ms
             self.integrationTime = 3000000 # 3.0 millseconds
@@ -222,7 +223,7 @@ class dataObject:
 
             
             self.runVaryCommand="InterFrame_NSec" 
-            self.varRange = [500,5000,50000,500000,5000000] 
+            self.varRange = [500] 
             self.runFrameCommand = self.userFunction 
 
             self.roi = [4, 0*16, 128, 16]
