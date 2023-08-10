@@ -87,14 +87,17 @@ class dataObject:
     #
     # userFunction is called for each frame of a run ( assumes an external trigger )
     #
-    def userFunction( self,nLoop ):
+    def usrFunction_DGCmd( self,nLoop ):
         """ nLoop is the frame number. 
+        Send a command to DG SRS at each frame - assumes Ext trigger.
         """
         
         print(f"Called userFunction n={nLoop}")
         self.dg.counter  = nLoop + 1
-        s = f"BURC {self.dg.counter}" # Set the burst Count
-        self.dg.send(s);
+        c  = f"{self.innerVarCommand} {self.innerVarList[nLoop]}"  
+        
+        #s = f"BURC {self.dg.counter}" # Set the burst Count
+        self.dg.send(c);
         self.dg.doTrigger()
         
     #
@@ -102,9 +105,10 @@ class dataObject:
     #
     def userFunctionB( self, nLoop ):
         """ nLoop is the frame number. 
-        """
+        Send a command to xPAD at each frame.
+        """ 
         print(f"Called userFunctionB n={nLoop}")
-        c  = f"{self.innerVarCommand} {self.innerVarRange[nLoop]}"  
+        c  = f"{self.innerVarCommand} {self.innerVarList[nLoop]}"  
         
         res = xd.run_cmd(c)
         self.dg.doTrigger()
@@ -130,9 +134,12 @@ class dataObject:
 
             
             self.runVaryCommand="DFPGA_DAC_OUT_VREF_BUF" 
-            self.varRange = [1000, 1200, 1400, 1600, 1800, 2000] 
-            self.runFrameCommand = self.userFunction 
-
+            self.varList = [1000, 1200, 1400, 1600, 1800, 2000] 
+            self.runFrameCommand = self.usrFunction_DGCmd 
+            
+            self.innerVarCommand ="BURC" 
+            self.innerVarList = [i for i in range(1, self.nFrames)]
+            
             self.roi = [46, 92, 32, 20]
             self.NCAPS = 3 # can this be pulled from file?
             self.fcnToCall = plotLinearity
@@ -158,8 +165,11 @@ class dataObject:
 
             
             self.runVaryCommand="InterFrame_NSec" 
-            self.varRange = [200, 500, 1000, 2000, 5000, 10000] 
-            self.runFrameCommand = self.userFunction 
+            self.varList = [200, 500, 1000, 2000, 5000, 10000] 
+            self.runFrameCommand = self.usrFunction_DGCmd 
+
+            self.innerVarCommand ="BURC" 
+            self.innerVarList = [i for i in range(1, self.nFrames)]
 
             self.roi = [46, 92, 32, 20]
             self.NCAPS = 3 # can this be pulled from file?
@@ -187,10 +197,10 @@ class dataObject:
             ]
            
             self.runVaryCommand="Readout_Delay" 
-            #self.varRange = [0,50,100,150]
-            self.varRange = [50]
+            #self.varList = [0,50,100,150]
+            self.varList = [50]
             self.runFrameCommand = self.userFunctionB
-            self.innerVarRange = [100,150,200,250,300, 350, 400, 450, 500, 550]
+            self.innerVarList = [100,150,200,250,300, 350, 400, 450, 500, 550]
             #self.innerVarCommand ="Interframe_nsec[1]" # [0] does not work correctly BUG!
             self.innerVarCommand ="Interframe_nsec" 
 
@@ -226,11 +236,49 @@ class dataObject:
             self.varRange = [500] 
             self.runFrameCommand = self.userFunction 
 
+            self.innerVarCommand ="BURC" 
+            self.innerVarList = [i for i in range(1, self.nFrames)]
+
             self.roi = [4, 0*16, 128, 16]
             self.NCAPS = 8 # can this be pulled from file?
             self.fcnToCall = plotEachCapLineout
             self.roiSumNumDims = 4
             self.fcnPlot = prettyAllCapsInALine    
+
+        # ****************************************************
+        elif self.strDescriptor == "Move_IR_Along_Caps":
+            # Setup is using 1 VCSEL  - direct imaged. NO integrating sphere. With 
+            # Width Switch; XXX TODO the three rightmost switches (towards power connector) are down:
+            # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
+            # SRS Burst Mode: Off. B=A+1us.   Vary A to move pulse into each CAP exposure 
+            # Set HW parameters
+            self.TakeBG = True
+            self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
+            self.MessageAfterBackground = "Plug the IR strobe trigger now"
+            self.setname = 'xpad-test-1pulse-per-cap'
+            self.nFrames = 10  # frames Per Run
+            # SRS is setup as single pulse. 
+            self.integrationTime = 100000 # 100 us
+            self.interframeTime = 500 
+
+            # create a list of commands to send to hardware via mmcmd 
+            unique_commands = [ 
+                "Cap_Select 0x1FF"       
+            ]
+
+            self.runVaryCommand="Readout_Delay"  # dummy not really scanning anything
+            self.varList = [50]
+            self.runFrameCommand = self.userFunctionB
+            # step through 500ns offset, increment A by 100.005us steps. 
+            self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames-1)] 
+            self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
+ 
+            self.roi = [4, 0*16, 128, 16]
+            self.NCAPS = 8 # can this be pulled from file?
+            self.fcnToCall = plotEachCapLineout
+            self.roiSumNumDims = 4
+            self.fcnPlot = prettyAllCapsInALine 
+
 
         # ****************************************************
         elif self.strDescriptor == "Sweep_Integ1":               
@@ -250,9 +298,9 @@ class dataObject:
             ]
            
             self.runVaryCommand="Readout_Delay"
-            self.varRange = [0,50,100,150]
+            self.varList = [0,50,100,150]
             self.runFrameCommand = self.userFunctionB
-            self.innerVarRange = [100,2100,6100,10100,20100]
+            self.innerVarList = [100,2100,6100,10100,20100]
             self.innerVarCommand ="Integration_nsec[1]" # [0] does not work correctly BUG!
 
             self.roi = [0, 7*16, 128, 16]
@@ -331,7 +379,7 @@ class dataObject:
         setname = self.setname
         #runname = 
         nFrames = self.nFrames
-        varRange = self.varRange
+        varRange = self.varList
 
         if self.overwrite:
             # delete old runs
@@ -434,7 +482,7 @@ class dataObject:
         """
 
         setname = self.setname
-        NRUNS = len(self.varRange) 
+        NRUNS = len(self.varList) 
         NCAPS = self.NCAPS
        
         roiSum = None
@@ -473,7 +521,7 @@ class dataObject:
             roiSum = self.fcnToCall( self, data = roiSum, runnum = runnum)
 
             if self.runVaryCommand:
-                title = f"{self.runVaryCommand} {self.varRange}"
+                title = f"{self.runVaryCommand} {self.varList}"
         
         #
         #  fcnPlot is the function to generate plot. It is defined in the IF's above.
@@ -713,6 +761,7 @@ def defineListOfTests():
     lot.append( ("Sweep_Inter1", "Adjust inteframe time [1] - see if the gradient shapes change with delay (they dont)") )
     lot.append( ("Sweep_Integ1", "Adjust integration time [1] - see if the gradient shapes change with delay (they dont)") )
     lot.append( ("Sweep_w_Background", "Sweep linearity with SRS - and also take a background") )
+    lot.append( ("Move_IR_Along_Caps", "SRS single bright pulse, moves from cap1 to cap 8") )
     
     return lot
 

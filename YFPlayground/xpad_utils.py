@@ -78,4 +78,5 @@ def gradient_over_lineout( data_array):
     # One option is to do a lineout - and return slope.
     X = range( len(data_array) )
     slope, intercept = np.polyfit(X, data_array, deg=1)
+    R = np.corrcoef(X, data_array) # check.
     return slope,intercept
