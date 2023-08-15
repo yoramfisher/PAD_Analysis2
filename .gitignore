@@ -1,4 +1,6 @@
-
+*.png
+*.tiff
+*.tif
 *.raw
 *.pyc
 *.*~
