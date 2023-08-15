@@ -1,4 +1,4 @@
-#created by BWM to take MM big data load
+#created by BWM to take MM big data 
 #10/07/22 first creation
 
 import numpy as np
