@@ -75,12 +75,14 @@ class dataObject:
         self.TakeBG = False
         self.MessageBeforeBackground = None
         self.MessageAfterBackground = None
+        self.fcnPlotOptions = None
 
         self.createObject()
         self.overwrite = True  # Set to true to delete previous runs
         self.bTakeData = bTakeData
         self.bAnalyzeData = bAnalyzeData
         self.TEST_ON_MAC = False
+        
 
 
 
@@ -121,7 +123,7 @@ class dataObject:
             # Width Switch; the three rightmost switches (towards power connector) are down:
             # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
             # Set HW parameters
-            self.setname = 'xpad-linscan_B27'
+            self.setname = 'xpad-linscan_varVREF-BP_1v5-0v5'
             self.nFrames = 30  # frames Per Run
             # SRS is setup with PER of 100us, so 30 takes 3ms
             self.integrationTime = 5000000 # 5.0 millseconds
@@ -133,14 +135,14 @@ class dataObject:
             ]
 
             
-            self.runVaryCommand="DFPGA_DAC_OUT_VREF_BUF" 
-            self.varList = [1000, 1200, 1400, 1600, 1800, 2000] 
+            self.runVaryCommand="DFPGA_DAC_OUT_VREF_BP" 
+            self.varList = [1500, 1300, 1100, 900, 700, 500] 
             self.runFrameCommand = self.usrFunction_DGCmd 
             
             self.innerVarCommand ="BURC" 
-            self.innerVarList = [i for i in range(1, self.nFrames)]
+            self.innerVarList = [i for i in range(1, self.nFrames+1)]
             
-            self.roi = [46, 92, 32, 20]
+            self.roi = [90, 60, 10, 10]
             self.NCAPS = 3 # can this be pulled from file?
             self.fcnToCall = plotLinearity
             self.roiSumNumDims = 3
@@ -248,18 +250,25 @@ class dataObject:
         # ****************************************************
         elif self.strDescriptor == "Move_IR_Along_Caps":
             # Setup is using 1 VCSEL  - direct imaged. NO integrating sphere. With 
-            # Width Switch; XXX TODO the three rightmost switches (towards power connector) are down:
-            # 1 1 1 1 1 0 0 0,  and there is one piece of silver mylar IFO the VCSEL 
+            # + Filter wheel to set intensity
+            # Width Switch; 
+            # 1 1 1 1 1 1 1 1, 
             # SRS Burst Mode: Off. B=A+1us.   Vary A to move pulse into each CAP exposure 
             # Set HW parameters
             self.TakeBG = True
             self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
             self.MessageAfterBackground = "Plug the IR strobe trigger now"
-            self.setname = 'xpad-test-1pulse-per-cap'
-            self.nFrames = 10  # frames Per Run
+            #self.setname = 'xpad-test-1pulse-per-cap'
+            #self.nFrames = 10  # frames Per Run
             # SRS is setup as single pulse. 
-            self.integrationTime = 100000 # 100 us
-            self.interframeTime = 500 
+            #self.integrationTime = 100000 # 100 us
+            #self.interframeTime = 500 
+            self.setname = 'xpad-test-1pulse-walkthrough_ND0p6_RTL_Orig'
+            self.nFrames = 60  # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
+            self.integrationTime = 500 # 500ns
+            self.interframeTime = 200 
+            
+            
 
             # create a list of commands to send to hardware via mmcmd 
             unique_commands = [ 
@@ -270,14 +279,23 @@ class dataObject:
             self.varList = [50]
             self.runFrameCommand = self.usrFunction_DGCmd
             # step through 500ns offset, increment A by 100.005us steps. 
-            self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames)] 
+            #self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames)] 
+            self.innerVarList = ["{:12.6e}".format( i*(100e-9)) for i in range(0,self.nFrames)] 
             self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
  
-            self.roi = [4, 0*16, 128, 16]
-            self.NCAPS = 8 # can this be pulled from file?
-            self.fcnToCall = plotEachCapLineout
+
+            self.roi = [46, 92, 32, 20]
+            self.fcnToCall = plotLinearity
             self.roiSumNumDims = 4
-            self.fcnPlot = prettyAllCapsInALine 
+
+            #self.roi = [4, 0*16, 128, 16]
+            self.NCAPS = 8 # can this be pulled from file?
+            #self.fcnToCall = plotEachCapLineout
+            #self.roiSumNumDims = 4
+            #self.fcnPlot = #prettyAllCapsInALine 
+            self.fcnPlot = prettyPlot
+            
+            self.fcnPlotOptions = {"waterfall":16000}
 
 
         # ****************************************************
@@ -308,6 +326,9 @@ class dataObject:
             self.fcnToCall = plotEachCapLineout
             self.roiSumNumDims = 4
             self.fcnPlot = prettyAllCapsInALine    
+
+        else:
+             raise Exception(" !Unknown string! ") 
 
 
         # ****************************************************
@@ -526,7 +547,7 @@ class dataObject:
         #
         #  fcnPlot is the function to generate plot. It is defined in the IF's above.
         #
-        self.fcnPlot (roiSum, title)
+        self.fcnPlot (roiSum, title, options = self.fcnPlotOptions)
 
 
 
@@ -588,26 +609,29 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
 #
 #
 #
-def prettyPlot(data, title):
+def prettyPlot(data, title, options = None):
     nruns = len(data)
 
     fig, ax = plt.subplots()
     #plt.figure(1)
+    
     nframes = len(data [0])
-    for n in range(nruns):
-        x = .5 +.5*(n / (nruns-1))
-        ax.plot( range(nframes), data[n,:,0], 
-            label="Cap1" if n==0 else "", color=( x,0,0) )
+    for c in range(3):
+        for n in range(nruns):
+            x = .5 +.5*(n / (nruns))
+            if c%5 == 0:
+                clr = (x,0,0)
+            elif c%5 == 1:
+                clr = (x,x,0)
+            elif c%5 == 2:
+                clr = (0,x,0)
+            elif c%5 == 3:
+                clr = (0,x,x)
+            elif c%5 == 4:
+                clr = (0,0,x)
 
-    for n in range(nruns):
-        x = .5 +.5*(n / (nruns-1))
-        ax.plot( range(nframes), data[n,:,1], 
-            label="Cap2" if n==0 else "", color = (0,0,x) )
-
-    for n in range(nruns):
-        x = .5 +.5*(n / (nruns-1))
-        ax.plot( range(nframes), data[n,:,2], 
-            label="Cap3" if n==0 else "", color = (0,x,0)) 
+            ax.plot( range(nframes), data[n,:,c], 
+                color=clr )
 
 
     plt.legend()
@@ -617,12 +641,15 @@ def prettyPlot(data, title):
     ax.yaxis.set_minor_locator( MultipleLocator(1000))
     plt.show(block=True) 
 
+
+
 #
-#   Data has <NCAPS> lineouts.  Line them all up into one lineout per image 
+#   TODO
 #
-def prettyAllCapsInALine(data, title):
+def prettyCapVsFrame(data, title, options = None):
     """
     data should be [nRuns, nFrames, nCaps, Width_of_lineout]
+    optional fcnPlotOptions = {"waterfall":5000}
     """
     nruns = len(data)
 
@@ -631,13 +658,61 @@ def prettyAllCapsInALine(data, title):
     nframes = len(data[0])
     ncaps = len(data[0,0] )
     dataWidth = len(data[0,0,0])
+    deltaY = 0
+    c = 1
 
-    
+    for n in range(nruns):     
+        for f in range(nframes):
+            d = []    
+            d.extend( f*deltaY + data[n, f, c, :])
+            
+            x = .5 +.5*(f / (nframes-1))
+            if f%3 == 0:
+                clr = (x,0,0)
+            elif f%3 == 1:    
+                clr = (0,x,0)
+            elif f%3 == 2:
+                clr = (0,0,x)
+
+            ax.plot( range(len(d)), d, color=clr, linewidth=0.5,
+            label=f"Run{n}" if f ==0 else "" )
+
+
+
+    plt.legend()
+    plt.xlabel(f'Cap{c} versus Frame')
+    plt.ylabel('Ave (ADU)')
+    plt.title( title )
+    ax.yaxis.set_minor_locator( MultipleLocator(1000))
+    plt.show(block=True) 
+
+
+#
+#   Data has <NCAPS> lineouts.  Line them all up into one lineout per image 
+#
+def prettyAllCapsInALine(data, title, options = None):
+    """
+    data should be [nRuns, nFrames, nCaps, Width_of_lineout]
+    optional fcnPlotOptions = {"waterfall":5000}
+    """
+    nruns = len(data)
+
+    fig, ax = plt.subplots()
+    #plt.figure(1)
+    nframes = len(data[0])
+    ncaps = len(data[0,0] )
+    dataWidth = len(data[0,0,0])
+    deltaY = 0
+
+    if options:
+        deltaY = options.get("waterfall")
+
+
     for n in range(nruns):     
         for f in range(nframes):
             d = []    
             for c in range(ncaps):
-                d.extend( data[n, f, c, :])
+                d.extend( f*deltaY + data[n, f, c, :])
             
             x = .5 +.5*(f / (nframes-1))
             if n%3 == 0:
@@ -670,6 +745,11 @@ def plotLinearity(dobj, data=None, runnum = 0):
     stores the average value over the ROI.
     """
    
+    back = None
+    
+    if hasattr(dobj, "back"):
+        back = dobj.back
+
     fore = dobj.fore
     roi = dobj.roi
     ncaps = dobj.NCAPS
@@ -677,6 +757,10 @@ def plotLinearity(dobj, data=None, runnum = 0):
 
     for fIdex in range( fore.numImages):
         (mdF,dataF) = fore.getFrame()
+        if back:
+            (mdB,dataB) = back.getFrame()
+            dataF = dataF - dataB #  Put F-B in F as a kludge.
+
         frameNum = fIdex // ncaps  # not a typo "//" is integer division 
         dataArray = np.resize(dataF,[512,512])
         dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
