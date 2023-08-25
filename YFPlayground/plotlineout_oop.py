@@ -35,6 +35,12 @@
 # Exposure_Mode set to 1 (One trigger for all selected caps)
 # Readout_Mode set to 1 (Wait for Readout Delay)
 
+#
+# Issues with mmcmd - try this:
+# $mmclient -s -t &
+# mmcmd open 1
+#
+
 import numpy as np
 import Big_keck_load as BKL
 import os
@@ -318,7 +324,7 @@ class dataObject:
             #self.integrationTime = 100000 # 100 us
             #self.interframeTime = 500 
             self.setname = 'xp-1p-walk_2roiA'
-            self.nFrames = 60  # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
+            self.nFrames = 6  # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
             self.integrationTime = 500 # 500ns
             self.interframeTime = 200 
             
@@ -617,18 +623,20 @@ class dataObject:
                 repeat += 1  # 0 --> 1
                 self.roi = self.roiB # re define the roi
                 self.newTitle = "roiB"
-                if repeat > 2:
+                if repeat >= 2:
                     break
             else:
                 break            
         # WHILE LOOP
 
+        plt.show()
+
 
 
 
 
 #
-#
+# not used 
 #
 def plotROI(cap, zSX, zSY, nTap, W, H): 
     """ cap is cap 0-7
@@ -675,7 +683,7 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     # Not sure ^ if thats right.
 
     xd.gradient_over_lineout(data_array)
-    plt.show()
+    #plt.show()
  
    
     
@@ -713,7 +721,9 @@ def prettyPlot(data, title, options = None):
     plt.ylabel('mean (ADU)')
     plt.title( title )
     ax.yaxis.set_minor_locator( MultipleLocator(1000))
-    plt.show(block=True) 
+
+    
+    #plt.show(block= True) 
 
 
 
@@ -758,7 +768,7 @@ def prettyCapVsFrame(data, title, options = None):
     plt.ylabel('Ave (ADU)')
     plt.title( title )
     ax.yaxis.set_minor_locator( MultipleLocator(1000))
-    plt.show(block=True) 
+    #plt.show(block=True) 
 
 
 #
@@ -806,7 +816,7 @@ def prettyAllCapsInALine(data, title, options = None):
     plt.ylabel('Ave (ADU)')
     plt.title( title )
     ax.yaxis.set_minor_locator( MultipleLocator(1000))
-    plt.show(block=True) 
+    #plt.show(block=True) 
 
 
 def plotLinearity(dobj, data=None, runnum = 0):
