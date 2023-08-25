@@ -13,6 +13,7 @@
 # v 0.4 7/31/23 OOP the S out of it. You should be able to edit createObject() to generate
 #  most data runs where one thing is varied per Run and another thing is varied per frame.
 # v 0.5 8/5/23 tkinter graphics
+# v 0.6 8/25/23 Allow two roi's
 
 #
 # INSTRUCTIONS
@@ -284,6 +285,7 @@ class dataObject:
             self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
  
 
+            # ANALYZE PROPERTIES
             self.roi = [46, 92, 32, 20]
             self.fcnToCall = plotLinearity
             self.roiSumNumDims = 4
@@ -295,9 +297,62 @@ class dataObject:
             #self.fcnPlot = #prettyAllCapsInALine 
             self.fcnPlot = prettyPlot
             
-            self.fcnPlotOptions = {"waterfall":16000}
+            # nope self.fcnPlotOptions = {"waterfall":16000}
 
 
+
+        # ****************************************************
+        elif self.strDescriptor == "Move_IR_Along_Caps_2ROIS":
+            # Setup is using 1 VCSEL  - direct imaged. NO integrating sphere. With 
+            # + Filter wheel to set intensity
+            # Width Switch; 
+            # 1 1 1 1 1 1 1 1, 
+            # SRS Burst Mode: Off. B=A+1us.   Vary A to move pulse into each CAP exposure 
+            # Set HW parameters
+            self.TakeBG = True
+            self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
+            self.MessageAfterBackground = "Plug the IR strobe trigger now"
+            #self.setname = 'xpad-test-1pulse-per-cap'
+            #self.nFrames = 10  # frames Per Run
+            # SRS is setup as single pulse. 
+            #self.integrationTime = 100000 # 100 us
+            #self.interframeTime = 500 
+            self.setname = 'xp-1p-walk_2roiA'
+            self.nFrames = 60  # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
+            self.integrationTime = 500 # 500ns
+            self.interframeTime = 200 
+            
+            
+
+            # create a list of commands to send to hardware via mmcmd 
+            unique_commands = [ 
+                "Cap_Select 0x1FF"       
+            ]
+
+            self.runVaryCommand="Readout_Delay"  # dummy not really scanning anything
+            self.varList = [50]
+            self.runFrameCommand = self.usrFunction_DGCmd
+            # step through 500ns offset, increment A by 100.005us steps. 
+            #self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames)] 
+            self.innerVarList = ["{:12.6e}".format( i*(100e-9)) for i in range(0,self.nFrames)] 
+            self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
+ 
+
+            # ANALYZE PROPERTIES
+            self.roi = [46, 92, 32, 20]
+            self.fcnToCall = plotLinearity
+            self.roiSumNumDims = 4
+
+            #self.roi = [4, 0*16, 128, 16]
+            self.NCAPS = 8 # can this be pulled from file?
+            #self.fcnToCall = plotEachCapLineout
+            #self.roiSumNumDims = 4
+            #self.fcnPlot = #prettyAllCapsInALine 
+            self.fcnPlot = prettyPlot
+            
+            # nope self.fcnPlotOptions = {"waterfall":16000}
+            # define a second ROI and plot that too.
+            self.roiB = [1,2,3,4] #todo
         # ****************************************************
         elif self.strDescriptor == "Sweep_Integ1":               
             # How does the slope of dark frames change as we change the interframe1 time? 
@@ -507,47 +562,66 @@ class dataObject:
         NCAPS = self.NCAPS
        
         roiSum = None
+        repeat = 0
+        title = ""
 
-        
+        while True:        
 
-        for runnum in range(NRUNS):
-            runname = f"run_{runnum+1}"
-            if self.TEST_ON_MAC: # Local Mac testing!
-                foreFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' # check not sure...
+            for runnum in range(NRUNS):
+                runname = f"run_{runnum+1}"
+                if self.TEST_ON_MAC: # Local Mac testing!
+                    foreFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' # check not sure...
+                    
+                else:
+                    foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw'
                 
-            else:
-                foreFile = f'/mnt/raid/keckpad/set-{setname}/run-{runname}/frames/{runname}_00000001.raw'
+                self.fore = BKL.KeckFrame( foreFile )
+                if self.TakeBG:
+                    backFile = f'/mnt/raid/keckpad/set-{setname}/run-back/frames/back_00000001.raw'
+                    self.back =  BKL.KeckFrame( backFile )
+
+
+
+                numImagesF = self.fore.numImages 
+                if roiSum is None:
+                    if self.roiSumNumDims == 3:
+                        roiSum = np.zeros((NRUNS,numImagesF // NCAPS, NCAPS),dtype=np.double)
+                    elif self.roiSumNumDims == 4:
+                        roiSum = np.zeros((NRUNS,numImagesF // NCAPS, NCAPS, self.roi[2]),dtype=np.double)
+
+
+                # create global big arrays to hold images
+                self.foreStack = np.zeros((numImagesF // NCAPS, NCAPS,512,512),dtype=np.double)
+
+
+                # Each time called, builds up data in data var/ roiSum.
             
-            self.fore = BKL.KeckFrame( foreFile )
-            if self.TakeBG:
-                backFile = f'/mnt/raid/keckpad/set-{setname}/run-back/frames/back_00000001.raw'
-                self.back =  BKL.KeckFrame( backFile )
+                roiSum = self.fcnToCall( self, data = roiSum, runnum = runnum)
+
+                if self.runVaryCommand:
+                    title = f"{self.runVaryCommand} {self.varList}"
 
 
-
-            numImagesF = self.fore.numImages 
-            if roiSum is None:
-                if self.roiSumNumDims == 3:
-                    roiSum = np.zeros((NRUNS,numImagesF // NCAPS, NCAPS),dtype=np.double)
-                elif self.roiSumNumDims == 4:
-                    roiSum = np.zeros((NRUNS,numImagesF // NCAPS, NCAPS, self.roi[2]),dtype=np.double)
+                if hasattr(self, "newTitle"):
+                    title = self.newTitle + ":" + title
 
 
-            # create global big arrays to hold images
-            self.foreStack = np.zeros((numImagesF // NCAPS, NCAPS,512,512),dtype=np.double)
+            
+            #
+            #  fcnPlot is the function to generate plot. It is defined in the IF's above.
+            #
+            self.fcnPlot (roiSum, title, options = self.fcnPlotOptions)
 
-
-            # Each time called, builds up data in data var/ roiSum.
-           
-            roiSum = self.fcnToCall( self, data = roiSum, runnum = runnum)
-
-            if self.runVaryCommand:
-                title = f"{self.runVaryCommand} {self.varList}"
-        
-        #
-        #  fcnPlot is the function to generate plot. It is defined in the IF's above.
-        #
-        self.fcnPlot (roiSum, title, options = self.fcnPlotOptions)
+            if hasattr(self, "roiB"):
+                # repeat the analsys with a second roi
+                repeat += 1  # 0 --> 1
+                self.roi = self.roiB # re define the roi
+                self.newTitle = "roiB"
+                if repeat > 2:
+                    break
+            else:
+                break            
+        # WHILE LOOP
 
 
 
@@ -607,16 +681,16 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     
 
 #
-#
+# Plot <n> caps. Plot mean of ROI versus frame number
 #
 def prettyPlot(data, title, options = None):
     nruns = len(data)
-
+    ncaps = len(data[0,0] )
     fig, ax = plt.subplots()
     #plt.figure(1)
     
     nframes = len(data [0])
-    for c in range(3):
+    for c in range(ncaps):
         for n in range(nruns):
             x = .5 +.5*(n / (nruns))
             if c%5 == 0:
@@ -846,6 +920,8 @@ def defineListOfTests():
     lot.append( ("Sweep_Integ1", "Adjust integration time [1] - see if the gradient shapes change with delay (they dont)") )
     lot.append( ("Sweep_w_Background", "Sweep linearity with SRS - and also take a background") )
     lot.append( ("Move_IR_Along_Caps", "SRS single bright pulse, moves from cap1 to cap 8") )
+    lot.append( ("Move_IR_Along_Caps_2ROIS", "SRS single bright pulse, moves from cap1" \
+        "to cap 8. Has a bright ROI and a dark ROI.") )
     
     return lot
 
