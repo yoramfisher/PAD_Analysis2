@@ -175,8 +175,8 @@ if __name__ == "__main__":
     #"C:\Sydor Technologies\S08a_CeO2_06_00000001.raw"
 
     
-    fore_filepath = r"C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
-    back_filepath = r"C:\Sydor Technologies\S08a_CeO2_06_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
+    fore_filepath = r"C:\Sydor Technologies\50KV_0C_1ms_cap0_f_00000001.raw" # "C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
+    back_filepath = r"C:\Sydor Technologies\50KV_0C_1ms_cap0_b_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
 
 
     Fore = KeckFrame(fore_filepath)
