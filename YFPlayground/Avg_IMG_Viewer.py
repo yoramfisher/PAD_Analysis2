@@ -52,11 +52,24 @@ class dataObject:
       W = self.roi[2]
       H = self.roi[3]
       self.data = np.zeros((8, H, W),dtype=np.double)
+      meanValue = np.zeros( (8,2), dtype=np.double)  # 8 CAPS, 2 ASICS per SM
+      self.normalizedMeanValue = np.zeros( (8 * 2), dtype=np.double)  # 8 CAPS, 2 ASICS per SM
       
-      for cap in range(0,8):
+      kLeftSide = 0
+      kRightSide = 1
+      margin = 5
+      for cap in range(8):
          aveData = self.openRunAndCreateData( cap )
-         self.data[cap,:,:] = aveData 
-
+         self.data[cap,:,:] = aveData    
+         meanValue[cap,kLeftSide] = np.average( aveData[margin: H-(2*margin), \
+            margin: int(W/2)-(2*margin) ] ) # ignore the outer (margin) pixels on edge - one ASIC at a time
+         meanValue[cap,kRightSide] = np.average( aveData[margin: H-(2*margin), \
+            int(W/2) + margin: W- (2*margin) ] ) # ignore the outer (margin) pixels on edge - one ASIC at a time
+       
+      # Create a list L,R L,R L,R  for CAPS 1 to .. 8
+      for cap in range(8):
+         for AsicSide in range(2):
+            self.normalizedMeanValue[AsicSide + 2*cap]  = meanValue[cap,AsicSide] / meanValue[0, kLeftSide]
 
    def  openRunAndCreateData( self,cap ):
       """
@@ -134,6 +147,10 @@ class dataObject:
 
 
    def makePlot(self):
+      """
+      self.data should be [N,H,W], where N = # CAPS.
+      Generate a 4 x 2 grid of flatfield images - one for each Cap.
+      """
       allplot = []
       dim0 = self.data.shape[0] 
       for val in range(dim0):
@@ -168,12 +185,27 @@ class dataObject:
       fig.subplots_adjust(wspace = 0.645, hspace = -0.2) # space is padding height
       
 
-
+    
 
 
       ##fig.savefig(foreFile + FFStat + "_AvgAll.png")
       ##plotData1 = plotData[0,:,:]
 
+      # PLOT TWO
+      #
+      #
+      ###################
+      #Code to plot and save one image with labels and such
+      ###################
+
+      fig,ax = plt.subplots(1)
+      ax.plot( range(dim0 * 2), self.normalizedMeanValue) # 2 ASICS per CAP
+
+      plt.legend()
+      plt.xlabel('Left ASIC, Right ASIC for each CAP')
+      plt.ylabel('Normalized to Left ASIC, CAP0')
+      plt.title( 'Compare Flatfield of each CAP' )
+      
 
    def createObject(self):
       # ****************************************************
