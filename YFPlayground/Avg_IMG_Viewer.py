@@ -39,12 +39,14 @@ def file_select(Type):
 # 
 class dataObject:
    def __init__(self, strDescriptor):
-      self.TEST_ON_MAC = True
+      self.TEST_ON_MAC = False
 
       self.strDescriptor = strDescriptor
       self.rootPath = r"Z:\Project#_1300_1499\#1415 SM HE Keck CdTe LANL\set-SMK020FTR"
       self.createObject()
-      
+      self.bClipData = False
+      self.clipLow = 0
+      self.clipHigh = 600
 
    def makeData(self):
       self.FFImage = 0 # set to 0 if dont want to FF
@@ -86,6 +88,10 @@ class dataObject:
          backFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' 
          
 
+      if VERBOSE:
+         print(f"backfile: {backFile};  foreFile: {foreFile}")
+
+               
       cwd = os.getcwd()
       back = BKL.KeckFrame(backFile)
       fore = BKL.KeckFrame(foreFile)
@@ -94,8 +100,8 @@ class dataObject:
       numImagesB = back.numImages
 
 
-      foreStack = np.zeros((8,512,512),dtype=np.double)
-      backStack = np.zeros((8,512,512),dtype=np.double)
+      foreStack = np.zeros((1,512,512),dtype=np.double)
+      backStack = np.zeros((1,512,512),dtype=np.double)
       FFStat = "noFF"
       if self.FFImage ==1 :
          fileObject = open(cwd + "/pickleFF.pi", 'rb')  # not at all tested will break 4 sure
@@ -103,25 +109,23 @@ class dataObject:
          fileObject.close()
          FFStat = "FF"
       else: 
-         ffCorect = 1
+         ffCorect = 1.0
 
 
       ##################################
       #Adjust for clipping
       ##################################
-      clipHigh = 5e2
-      clipLow = 0
       #read all the image files
       for fIdex in range(numImagesB):
          (mdB,dataB) = back.getFrame()
-         backStack[cap,:,:] += np.resize(dataB,[512,512])
+         backStack[0,:,:] += np.resize(dataB,[512,512])
             
       avgBack = backStack/numImagesB
       
       for fIdex in range(numImagesF):
          (mdF,dataF) = fore.getFrame()
       
-         foreStack[cap,:,:] += np.resize(dataF,[512,512])
+         foreStack[0,:,:] += np.resize(dataF,[512,512])
 
       avgFore = foreStack/numImagesB
 
@@ -131,18 +135,19 @@ class dataObject:
       else:
          plotData = (avgFore-avgBack) * ffCorect
 
-
-      plotData = np.clip(plotData, clipLow, clipHigh)
-      #tavgplotData = gc.GeoCor(np.average(plotData, axis=0))
+      if self.bClipData:
+         plotData = np.clip(plotData, self.clipLow, self.clipHigh)
+      ###tavgplotData = gc.GeoCor(np.average(plotData, axis=0))
       
-      tavgplotData = np.average(plotData, axis=0)
+      ###tavgplotData = np.average(plotData, axis=0)
+      
       
       # rio is [X,Y,W,H]
       startPixY = self.roi[1]
       endPixY = startPixY + self.roi[3]
       startPixX = self.roi[0]
       endPixX = startPixX + self.roi[2]
-      result =  tavgplotData[  startPixY:endPixY, startPixX:endPixX ]
+      result =  plotData[ 0,  startPixY:endPixY, startPixX:endPixX ]
       return result
 
 
@@ -171,7 +176,11 @@ class dataObject:
          # fig,ax = plt.subplots(1)
          #needed to add more stuff
          # image = ax.imshow(clipData, cmap = "viridis")
-         cbar = fig.colorbar(image, aspect=4, ax = ax[indexRow,indexCol])
+         mean = np.mean(pic)
+         stdev = np.std(pic)
+         image.set_clim(vmin= mean - stdev, vmax = mean+stdev)
+
+         cbar = fig.colorbar(image, aspect=4, ax = ax[indexRow,indexCol] )
          ax[indexRow,indexCol].set_title('Keck Cap'+ str(indexVal))
          if indexCol == 0:
             ax[indexRow,indexCol].set_ylabel("Pixel")
