@@ -5,29 +5,35 @@ asic_height = 128;
 img_width = 512;
 img_height = 512;
 num_caps = 8;                   # Camera Parameters
-num_skip_image = 9;             # The number of images at the start to skip
+num_skip_images = 0;             # The number of images at the start to skip
 num_skip_frames = num_caps * num_skip_images; # Total frames to skip
-bad_asics = [0, 0, 0, 0; 0, 0, 0, 0; 0, 0, 0, 0; 0, 0, 0, 0]; # Set to 1 if the whole ASIC is bad
+bad_asics = [1, 1, 1, 1; 1, 1, 0, 0; 1, 1, 1, 1; 1, 1, 1, 1]; # Set to 1 if the whole ASIC is bad
 offset = 256;                   # Header size
 gap=1024;                       # Gap between rasters
 
+bad_thresh = [1.5 1.806 1.955 2.2687 2.3881];
+
 ##-=-= NOTE A good file
-prelim_bad_pixel_filename = 'blank_bad.raw';
+#prelim_bad_pixel_filename = 'blank_bad.raw';
 
-prelim_bad_pixel_file = fopen(prelim_bad_pixel_filename, "rb");
+#prelim_bad_pixel_file = fopen(prelim_bad_pixel_filename, "rb");
 
-prelim_bad_mask = fread(prelim_bad_pixel_file, [img_height, img_width], 'uint16', 0, 'b')';
+#prelim_bad_mask = fread(prelim_bad_pixel_file, [img_height, img_width], 'uint16', 0, 'b')';
 
 ## Note where preliminary bad pixels are set
-prelim_bad_mask = prelim_bad_mask != 0;
-fclose(prelim_bad_pixel_file);
+#prelim_bad_mask = prelim_bad_mask != 0;
+#fclose(prelim_bad_pixel_file);
 
+prelim_bad_mask = zeros(512,512);
+prelim_bad_mask(129:256, 128*3+1) = 1;
+prelim_bad_mask = prelim_bad_mask != 0;
+                                    
 dark_image = zeros(img_height, img_width, num_caps);
 bright_image = zeros(img_height, img_width, num_caps);
 
 # Load in the the dark image and threshold
 ## Good filename
-dark_image_filename = 'C:/rtsup/raid/keckpad/set-rework/run-back5ms/frames/back5ms_00000001.raw';
+dark_image_filename = 'dark_combined.raw';
 
 ## Load in the whole stack
 [raw_dark, num_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, 512, 512);
@@ -54,9 +60,15 @@ endfor
 ## Now NaN out the bad asics
 dark_image = apply_bad_asic(bad_asics, asic_height, asic_width, dark_image);
 
+
+
 ## Threshold out the hot pixels
 ## The threshold is the third argument in thresh_image(), below.
-hot_img = thresh_image(dark_image, 0, 1.7, asic_width, asic_height);
+hot_filt = [];
+for curr_thresh=bad_thresh
+  [hot_img, pix_thresh] = thresh_image(dark_image, 0, curr_thresh, asic_width, asic_height);
+  hot_filt = [hot_filt pix_thresh];
+endfor
 
 ## Now do similar to find the dark pixels
 
@@ -64,7 +76,7 @@ hot_img = thresh_image(dark_image, 0, 1.7, asic_width, asic_height);
 ## Filename of a test pattern
 bright_image_filename = 'basic_pattern.raw';
 ## Good filename
-bright_image_filename = 'C:/rtsup/raid/keckpad/set-rework/run-flat30KV5ms/frames/flat30KV5ms_00000001.raw';
+bright_image_filename = 'bright_combined.raw';
 
 ## Load in the whole stack
 [raw_bright, num_frames] = read_xpad_image(bright_image_filename, 16, offset, gap, 512, 512);
@@ -94,7 +106,11 @@ bright_image = apply_bad_asic(bad_asics, asic_height, asic_width, bright_image);
 
 ## Threshold out the hot pixels
 ## The threshold is the third argument in thresh_image(), below.
-cold_img = thresh_image(bright_image, 1, 1.5, asic_width, asic_height);
+cold_filt = [];
+for curr_thresh=bad_thresh
+  [cold_img, curr_filt] = thresh_image(bright_image, 1, curr_thresh, asic_width, asic_height);
+  cold_filt = [cold_filt curr_filt];
+endfor
 
 ## With the bad pixels calculated, we can collapse them to single layers for writing out
 ## This works by adding NaNs so that a NaN in any cap propagates to the total

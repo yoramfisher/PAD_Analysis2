@@ -1,5 +1,6 @@
-function mod_img = pixel_iqr_filt(base_img, bLow, thresh)
+function [mod_img, pix_thresh_prop] = pixel_iqr_filt(base_img, bLow, thresh)
   mod_img = base_img;
+  pix_thresh_prop = -5;
   curr_line = reshape(base_img, 1, []);
   curr_line = curr_line(find(isfinite(curr_line)));
 
