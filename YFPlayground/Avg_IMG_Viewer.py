@@ -47,6 +47,7 @@ class dataObject:
       self.bClipData = False
       self.clipLow = 0
       self.clipHigh = 600
+      self.bSaveFigs = True
 
    def makeData(self):
       self.FFImage = 0 # set to 0 if dont want to FF
@@ -192,13 +193,13 @@ class dataObject:
 
       fig.set_size_inches(12, 4)    
       fig.subplots_adjust(wspace = 0.645, hspace = -0.2) # space is padding height
-      
+      plt.tight_layout()
 
     
 
-
-      ##fig.savefig(foreFile + FFStat + "_AvgAll.png")
-      ##plotData1 = plotData[0,:,:]
+      if self.bSaveFigs:
+         fig.savefig(self.baseFileName + "_AvgAll.png")
+      
 
       # PLOT TWO
       #
@@ -208,12 +209,28 @@ class dataObject:
       ###################
 
       fig,ax = plt.subplots(1)
-      ax.plot( range(dim0 * 2), self.normalizedMeanValue) # 2 ASICS per CAP
-
-      plt.legend()
-      plt.xlabel('Left ASIC, Right ASIC for each CAP')
+      
       plt.ylabel('Normalized to Left ASIC, CAP0')
+      catNames = [f"Cap{c}" for c in range(8)]
+      X = 1 + np.arange(8)
+      bar_width = 0.4
+      ax.bar(X - bar_width/2, [self.normalizedMeanValue[s]-1 for s in range(0,16,2)], color = 'b', width=bar_width )
+      ax.bar(X + bar_width/2, [self.normalizedMeanValue[s]-1 for s in range(1,16,2)], color = 'r', width=bar_width )
+      ax.legend(labels=['Left', 'Right'])
+      ###ax.set_xticklabels( catNames )
+      ###ax.set_yticklabels( [ '.8','.9', '1.0', '1.1', '1.2'] )
+      ###ax.set_ylim(-.2, 0.2)
+      nt = np.arange(-2,3,1)
+      amp = .010
+      ax.set_yticks(nt* amp ,  list(map(str, 1 + nt * amp)))
+      ax.set_xticks([1,2,3,4,5,6,7,8,9],   catNames +[""])
+
+
       plt.title( 'Compare Flatfield of each CAP' )
+
+      if self.bSaveFigs:
+         fig.savefig(self.baseFileName + "_RelGain_barchart.png")
+
       
 
    def createObject(self):
