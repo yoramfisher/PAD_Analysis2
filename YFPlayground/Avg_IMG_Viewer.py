@@ -353,6 +353,7 @@ class dataObject:
       
       ax.plot(np.arange(16), np.resize(self.meanDarkCurrent / 1000,[16,1]))
       plt.ylabel('Counts')
+      plt.xlabel('Left & Right for each CAP')
       plt.title( 'Dark Current (Counts / ms )')
       
       catNames = []
