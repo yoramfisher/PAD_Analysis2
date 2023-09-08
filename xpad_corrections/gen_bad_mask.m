@@ -68,6 +68,10 @@ hot_filt = [];
 for curr_thresh=bad_thresh
   [hot_img, pix_thresh] = thresh_image(dark_image, 0, curr_thresh, asic_width, asic_height);
   hot_filt = [hot_filt pix_thresh];
+
+  hot_total = sum(hot_img, 3);
+  out_name = sprintf("hot_iqr_%.4f.pgm", curr_thresh);
+  pgm_write(hot_total, out_name);
 endfor
 
 ## Now do similar to find the dark pixels
