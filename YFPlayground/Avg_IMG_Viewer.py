@@ -4,6 +4,7 @@
 #
 # Keywords:
 #  FlatField
+#  DarkCurrent
 
 
 #
@@ -74,6 +75,42 @@ class dataObject:
          for AsicSide in range(2):
             self.normalizedMeanValue[AsicSide + 2*cap]  = meanValue[cap,AsicSide] / meanValue[0, kLeftSide]
 
+
+   def makeData_DC(self):
+      """
+      MakeData for Dark current analysis
+      Use 1 ms and a 100ns dark image data set
+      """
+      self.FFImage = 0 # set to 0 if dont want to FF
+      self.fgFileName = "0C_1s_dark-2"
+      self.bgFileName = "0C_100ns_dark-2"
+
+
+      W = self.roi[2]
+      H = self.roi[3]
+      ncaps =8
+      self.data = np.zeros((ncaps, H, W),dtype=np.double)
+      self.meanDarkCurrent = np.zeros( (ncaps,2), dtype=np.double)  # 8 CAPS, 2 ASICS per SM
+
+      
+      kLeftSide = 0
+      kRightSide = 1
+      
+      margin = 32
+      
+
+      aveData = self.openRunAndCreateData_DC()
+      self.data = aveData   
+      for c in range(8): 
+         self.meanDarkCurrent[c,kLeftSide] = np.average( aveData[c, margin: H-(2*margin), \
+            margin: int(W/2)-(2*margin) ] ) # ignore the outer (margin) pixels on edge - one ASIC at a time
+         self.meanDarkCurrent[c,kRightSide] = np.average( aveData[c, margin: H-(2*margin), \
+            int(W/2) + margin: W- (2*margin) ] ) # ignore the outer (margin) pixels on edge - one ASIC at a time
+      
+
+
+
+
    def  openRunAndCreateData( self,cap ):
       """
       Returns 2-D array, defined by ROI. Averaged over N images. F-B
@@ -128,7 +165,7 @@ class dataObject:
       
          foreStack[0,:,:] += np.resize(dataF,[512,512])
 
-      avgFore = foreStack/numImagesB
+      avgFore = foreStack/numImagesF
 
       if self.TEST_ON_MAC:
          plotData = (avgFore) * ffCorect
@@ -149,6 +186,78 @@ class dataObject:
       startPixX = self.roi[0]
       endPixX = startPixX + self.roi[2]
       result =  plotData[ 0,  startPixY:endPixY, startPixX:endPixX ]
+      return result
+
+
+   def  openRunAndCreateData_DC( self ):
+      """
+      For Dark Current analysis. Returns average over N of F-B as a data_array[caps, W, H] 
+      """
+      backFile = self.rootPath +  \
+         f"\\run-{self.bgFileName}" +  r"\frames" + f"\\{self.bgFileName}_00000001.raw"
+      foreFile = self.rootPath + \
+         f"\\run-{self.fgFileName}" +  r"\frames" + f"\\{self.fgFileName}_00000001.raw"
+      
+
+      if self.TEST_ON_MAC: # Local Mac testing!
+         foreFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' 
+         backFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' 
+         
+
+      if VERBOSE:
+         print(f"backfile: {backFile};  foreFile: {foreFile}")
+
+               
+      cwd = os.getcwd()
+      back = BKL.KeckFrame(backFile)
+      fore = BKL.KeckFrame(foreFile)
+
+      numImagesF = fore.numImages
+      numImagesB = back.numImages
+
+
+      foreStack = np.zeros((8,512,512),dtype=np.double)
+      backStack = np.zeros((8,512,512),dtype=np.double)
+      FFStat = "noFF"
+      if self.FFImage ==1 :
+         fileObject = open(cwd + "/pickleFF.pi", 'rb')  # not at all tested will break 4 sure
+         ffCorect = pkl.load(fileObject)
+         fileObject.close()
+         FFStat = "FF"
+      else: 
+         ffCorect = 1.0
+
+
+      ##################################
+      #Adjust for clipping
+      ##################################
+      #read all the image files
+      for fIdex in range(numImagesB):
+         (mdB,dataB) = back.getFrame()
+         backStack[mdB.capNum-1,:,:] += np.resize(dataB,[512,512])
+            
+      avgBack = backStack/(numImagesB/self.NCAPS_per_file)
+      
+      for fIdex in range(numImagesF):
+         (mdF,dataF) = fore.getFrame()
+      
+         foreStack[mdF.capNum-1,:,:] += np.resize(dataF,[512,512])
+
+      avgFore = foreStack/(numImagesF/self.NCAPS_per_file)
+
+      if self.TEST_ON_MAC:
+         plotData = (avgFore) * ffCorect
+
+      else:
+         plotData = (avgFore-avgBack) * ffCorect
+
+      
+      # ROI is [X,Y,W,H]
+      startPixY = self.roi[1]
+      endPixY = startPixY + self.roi[3]
+      startPixX = self.roi[0]
+      endPixX = startPixX + self.roi[2]
+      result =  plotData[ :, startPixY:endPixY, startPixX:endPixX ]
       return result
 
 
@@ -182,7 +291,7 @@ class dataObject:
          image.set_clim(vmin= mean - stdev, vmax = mean+stdev)
 
          cbar = fig.colorbar(image, aspect=4, ax = ax[indexRow,indexCol] )
-         ax[indexRow,indexCol].set_title('Keck Cap'+ str(indexVal))
+         ax[indexRow,indexCol].set_title('Keck Cap'+ str(1+ indexVal))
          if indexCol == 0:
             ax[indexRow,indexCol].set_ylabel("Pixel")
          if indexRow == 1:   
@@ -210,8 +319,8 @@ class dataObject:
 
       fig,ax = plt.subplots(1)
       
-      plt.ylabel('Normalized to Left ASIC, CAP0')
-      catNames = [f"Cap{c}" for c in range(8)]
+      plt.ylabel('Normalized to Left ASIC, CAP1')
+      catNames = [f"Cap{c+1}" for c in range(8)]
       X = 1 + np.arange(8)
       bar_width = 0.4
       ax.bar(X - bar_width/2, [self.normalizedMeanValue[s]-1 for s in range(0,16,2)], color = 'b', width=bar_width )
@@ -227,9 +336,37 @@ class dataObject:
 
 
       plt.title( 'Compare Flatfield of each CAP' )
+      plt.ylabel('Counts')
+
 
       if self.bSaveFigs:
          fig.savefig(self.baseFileName + "_RelGain_barchart.png")
+
+
+   def makePlot_DC(self):
+      """
+      self.data should be [N,H,W], where N = # CAPS.
+      Generate a plot of dark current for each of the 8 CAPS
+      """
+      
+      fig,ax = plt.subplots(1)
+      
+      ax.plot(np.arange(16), np.resize(self.meanDarkCurrent / 1000,[16,1]))
+      plt.ylabel('Counts')
+      plt.title( 'Dark Current (Counts / ms )')
+      
+      catNames = []
+      for c in range(8):
+         catNames.append( f"Cap{c+1}" )
+         #catNames.append( f"R_Cap{c+1}" )
+
+      ax.set_xticks(0.5 + np.arange(8)*2,   catNames )
+
+
+
+      if self.bSaveFigs:
+         fig.savefig(self.fgFileName + "_TODO.png")
+      
 
       
 
@@ -241,7 +378,17 @@ class dataObject:
          self.NCAPS_per_file = 1 
          self.fcnToCall = self.makeData
          self.fcnPlot   =  self.makePlot
+
+
+      elif self.strDescriptor == "DarkCurrent":  
+         self.rootPath = r"Z:\Project#_1300_1499\#1415 SM HE Keck CdTe LANL\set-SMK08SEPT23test"
+         self.roi = [256, 128, 256, 128]          
+         self.NCAPS_per_file = 8 
+         self.fcnToCall = self.makeData_DC
+         self.fcnPlot   =  self.makePlot_DC
          
+
+
       else:
          raise Exception(" !Unknown string! ")    
       
@@ -357,6 +504,7 @@ def defineListOfTests():
 
     lot = []
     lot.append( ("Flatfield","Analyze the 8 FF files. ") )
+    lot.append( ("DarkCurrent","Analyze dark long exposure minus dark short exposure. ") )
     # TODO - add more here
     return lot
 
