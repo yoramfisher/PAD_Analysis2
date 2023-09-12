@@ -66,7 +66,7 @@ for fg_idx=1:num_fg
   endfor
 
   #-=-= DEBUGGING
-  if (fg_idx == 6)
+  if (fg_idx == 0)
     imwrite(raw_bright(:,:,100), 'sub_bright.tiff');
   endif
   
@@ -95,8 +95,18 @@ for fg_idx=1:num_fg
 endfor
 
 subplot(1,1,1)
-plot(mu_vals(7,:), sigmasq_vals(7,:),'b*;ASIC 7;', mu_vals(8,:), sigmasq_vals(8,:),'r^;ASIC 8;');
-title("Linearity")
+plot(mu_vals(7,:), sigmasq_vals(7,:),'-b*;ASIC 7;', mu_vals(8,:), sigmasq_vals(8,:),'-r^;ASIC 8;');
+title("Linearity - Cap 1")
+xlabel('Frame Mean (ADU)')
+ylabel('Frame Variance (ADU^2)')
+print pad_linearity.png
+
+printf("Linearity Data ASIC 7\n")
+disp([mu_vals(7,num_fg:-1:1); sigmasq_vals(7,num_fg:-1:1)]')
+
+printf("Linearity Data ASIC 8\n")
+disp([mu_vals(8,num_fg:-1:1); sigmasq_vals(8,num_fg:-1:1)]')
+
 
 #subplot(2,1,2)
 #plot(1:8,separate_cap_noise(7,:),'-b*;ASIC 7;', 1:8, separate_cap_noise(8,:),'-r^;ASIC 8;');

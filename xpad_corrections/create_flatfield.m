@@ -19,8 +19,13 @@ asic_y_count = image_height/asic_height;
 dark_filename = 'xpad_dark.raw'; # The image of dark current
 bright_filename = 'xpad_bright.raw'; # The flat-field image
 
+##-=-= NOTE These are for images taken in forward order
 dark_filename = 'dark_combined.raw';
 bright_filename = 'bright_combined.raw';
+
+##-=-= XXX These are for images taken in backwards order
+dark_filename = 'reverse_dark.raw';
+bright_filename = 'reverse_bright.raw';
 
 [dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded dark image')
@@ -58,6 +63,7 @@ endif
 bright_image = avg_caps(bright_raw, num_caps);
 clear bright_raw
 disp('Averaged bright image')
+printf("Frames per cap: %i\n", num_bright_frames/num_caps);
 
 ## Now do the background subtraction
 bg_sub_image = bright_image-dark_image;
@@ -115,7 +121,7 @@ for cap_idx = 1:num_caps
       if isempty(flat_pix)
         pix_std(asic_idx, cap_idx) = -1;
       else
-        pix_std(asic_idx, cap_idx) = std(flat_pix);
+        pix_std(asic_idx, cap_idx) = std(1./flat_pix);
       endif
     endfor
   endfor
@@ -128,6 +134,17 @@ for cap_idx = 1:num_caps
   curr_frame = flat_raster(:,:,cap_idx)';
   fwrite(ff_file, curr_frame, "double", 0, "l");
 endfor
+
+figure(1)
+subplot(1,1,1)
+plot(1:num_caps, pix_std(7,:), '-b*;ASIC 7;', 1:num_caps, pix_std(8,:), '-r^;ASIC8;')
+title("ASIC Flatness")
+xlabel("Cap Number")
+ylabel("Std Dev of Flatfield Gain (normalized to 1)")
+print asic_flatness.png
+
+printf("ASIC Flatness\n")
+disp([pix_std(7:8,:) mean(pix_std(7:8,:),2)])
 
 fclose(ff_file);
 

@@ -61,9 +61,10 @@ raw_cap_noise = zeros(asic_count, num_caps);
 separate_cap_noise = zeros(asic_count, num_caps);
 asic_idx = 0;
 
+printf("Frames Per Cap: %i\n", (num_frames/2/num_caps));
 for cap_idx = 1:num_caps
   asic_idx = 0;
-  cap_lower = cap_idx
+  cap_lower = cap_idx;
   cap_range = cap_lower:num_caps:(num_frames/2);
   for row_idx=1:asic_y_count
     row_lower = (row_idx-1)*asic_height+1;
@@ -79,6 +80,10 @@ for cap_idx = 1:num_caps
       
       asic_idx = asic_idx + 1;
 
+      if asic_idx == 7
+        asic_7 = diff_stack(row_lower:row_upper, col_lower:col_upper, :);
+      endif
+      
       curr_asic = diff_stack(row_lower:row_upper, col_lower:col_upper, cap_range);
       
       raw_cap_noise(asic_idx, cap_idx) = calc_read_noise(curr_asic, 1);
@@ -89,9 +94,44 @@ endfor
 
 full_noise = mean(raw_cap_noise,2);
 
+printf("Total Noise:\n")
+disp([raw_cap_noise(7:8,:) mean(raw_cap_noise(7:8,:),2)])
+
+printf("Per-Frame Noise:\n")
+disp([separate_cap_noise(7:8,:) mean(separate_cap_noise(7:8,:),2)])
+
+
+figure(1)
 subplot(2,1,1)
 plot(1:8,raw_cap_noise(7,:),'-b*;ASIC 7;', 1:8, raw_cap_noise(8,:),'-r^;ASIC 8;');
 title("Total Noise")
+xlabel("Cap Number")
+ylabel("Noise (ADU)")
 subplot(2,1,2)
 plot(1:8,separate_cap_noise(7,:),'-b*;ASIC 7;', 1:8, separate_cap_noise(8,:),'-r^;ASIC 8;');
-title('Per-cap Noise')
+title('Per-Frame Noise')
+xlabel("Cap Number")
+ylabel("Noise (ADU)")
+
+print read_noise.png
+
+figure(2)
+frames_per_cap = num_frames/2/num_caps;
+a7_mean = zeros(num_caps, frames_per_cap);
+for cap_idx=1:num_caps
+  cap_frames=cap_idx:num_caps:(num_frames/2);
+  cap_stack = asic_7(:,:,cap_frames);
+  for frame_idx=1:frames_per_cap
+    curr_slice = cap_stack(:,:,frame_idx);
+    a7_mean(cap_idx, frame_idx) = mean(reshape(curr_slice, 1, []));
+  endfor
+endfor
+
+plot(1:frames_per_cap, a7_mean(1,:), '-b*;Cap 1;', 1:frames_per_cap, a7_mean(7,:), '-r^;Cap 6;')
+title("Mean of ASIC 7 Difference Images")
+xlabel("Frame within Cap")
+ylabel("Mean Value (ADU)")
+print image_mean.png
+
+printf("ASIC 7 Frame Averages Caps 1 and 6")
+disp([a7_mean(1:6:7,:) mean(a7_mean(1:6:7,:),2)])
