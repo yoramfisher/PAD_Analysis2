@@ -109,9 +109,10 @@ class UIPage:
         lb = self.lb_ScriptToRun
         lbl = self.selection_label
         n = lb.curselection()
-        descrip_text = self.tup_Name_Descrip[n[0]][1]
-        lbl.config(text=f"Description: {descrip_text}")
-        self.selectedText = self.tup_Name_Descrip[ n[0] ][0]
+        if len(n):
+           descrip_text = self.tup_Name_Descrip[n[0]][1]
+           lbl.config(text=f"Description: {descrip_text}")
+           self.selectedText = self.tup_Name_Descrip[ n[0] ][0]
     
     def show(self):
         # Create the main window
