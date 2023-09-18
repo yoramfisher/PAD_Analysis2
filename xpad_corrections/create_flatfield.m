@@ -15,15 +15,15 @@ asic_y_count = image_height/asic_height;
 dark_filename = 'xpad_dark.raw'; # The image of dark current
 bright_filename = 'xpad_bright.raw'; # The flat-field image
 
-dark_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/ff_keck_test/run-back5ms/frames/back5ms_00000001.raw';
-bright_filename = '/media/iainm/7708b1ae-fb79-4039-914b-6f905445c611/iainm/ff_keck_test/run-flat30KV5ms/frames/flat30KV5ms_00000001.raw';
+dark_filename = '/home/sydor/Sydor/smk_xpad030/correct/50KV_0C_1ms_b_00000001.raw';
+bright_filename = '/home/sydor/Sydor/smk_xpad030/correct/flat_img.raw';
 
 [dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded dark image')
 
 # Skip the first 9 frames
-dark_raw = dark_raw(:,:,73:num_dark_frames);
-num_dark_frames = num_dark_frames-72;
+# dark_raw = dark_raw(:,:,73:num_dark_frames);
+# num_dark_frames = num_dark_frames-72;
 
 ## With the dark current image loaded, we can average the values per-cap
 dark_image = avg_caps(dark_raw, num_caps);

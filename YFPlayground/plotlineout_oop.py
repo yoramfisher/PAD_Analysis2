@@ -270,34 +270,36 @@ class dataObject:
             # SRS is setup as single pulse. 
             #self.integrationTime = 100000 # 100 us
             #self.interframeTime = 500 
-            self.setname = 'xpad-test-1pulse-walkthrough_ND0p6_RTL_Orig'
-            self.nFrames = 60  # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
+            self.setname = 'xpad-test-1pulse-walkthrough_500-300_20nsStep_ISS-BUFsweep2'
+            self.nFrames = 100  # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
             self.integrationTime = 500 # 500ns
-            self.interframeTime = 200 
+            self.interframeTime = 300 
             
             
 
             # create a list of commands to send to hardware via mmcmd 
             unique_commands = [ 
-                "Cap_Select 0x1FF"       
+                "Cap_Select 0x0F"       
             ]
 
-            self.runVaryCommand="Readout_Delay"  # dummy not really scanning anything
-            self.varList = [50]
+            #self.runVaryCommand="Readout_Delay"  # dummy not really scanning anything
+            #self.varList = [50]
+            self.runVaryCommand="DFPGA_DAC_OUT_V_ISS_BUF"  # dummy not really scanning anything
+            self.varList = [1297, 800, 500]
             self.runFrameCommand = self.usrFunction_DGCmd
             # step through 500ns offset, increment A by 100.005us steps. 
             #self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames)] 
-            self.innerVarList = ["{:12.6e}".format( i*(100e-9)) for i in range(0,self.nFrames)] 
+            self.innerVarList = ["{:12.6e}".format( i*(20e-9)) for i in range(0,self.nFrames)] 
             self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
  
 
             # ANALYZE PROPERTIES
-            self.roi = [46, 92, 32, 20]
+            self.roi = [30, 71, 16, 4]
             self.fcnToCall = plotLinearity
             self.roiSumNumDims = 4
 
             #self.roi = [4, 0*16, 128, 16]
-            self.NCAPS = 8 # can this be pulled from file?
+            self.NCAPS = 3 # can this be pulled from file?
             #self.fcnToCall = plotEachCapLineout
             #self.roiSumNumDims = 4
             #self.fcnPlot = #prettyAllCapsInALine 
@@ -324,9 +326,11 @@ class dataObject:
             #self.integrationTime = 100000 # 100 us
             #self.interframeTime = 500 
             self.setname = 'xp-1p-walk_2roiA'
-            self.nFrames = 6  # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
+            # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
+            # 50ns steps over 800ns is 16 steps * 8 =  128
+            self.nFrames = 130  
             self.integrationTime = 500 # 500ns
-            self.interframeTime = 200 
+            self.interframeTime = 300  # was 200 
             
             
 
@@ -340,12 +344,18 @@ class dataObject:
             self.runFrameCommand = self.usrFunction_DGCmd
             # step through 500ns offset, increment A by 100.005us steps. 
             #self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames)] 
+
+            #  increment A by 100 ns steps.  700ns * 8 = 56 steps
             self.innerVarList = ["{:12.6e}".format( i*(100e-9)) for i in range(0,self.nFrames)] 
+
+            #  increment A by 50 ns steps.  700ns * 8 = 56 steps
+            self.innerVarList = ["{:12.6e}".format( i*(50e-9)) for i in range(0,self.nFrames)] 
+
             self.innerVarCommand ="DLAY 2,0,"  # Set channel A to T0 + (parameter)
  
 
             # ANALYZE PROPERTIES
-            self.roi = [46, 92, 32, 20]
+            self.roi = [32,71,16,4]
             self.fcnToCall = plotLinearity
             self.roiSumNumDims = 4
 
@@ -358,7 +368,7 @@ class dataObject:
             
             # nope self.fcnPlotOptions = {"waterfall":16000}
             # define a second ROI and plot that too.
-            self.roiB = [1,2,3,4] #todo
+            self.roiB = [60,72,16,4] 
         # ****************************************************
         elif self.strDescriptor == "Sweep_Integ1":               
             # How does the slope of dark frames change as we change the interframe1 time? 
