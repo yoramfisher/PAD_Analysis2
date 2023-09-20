@@ -905,7 +905,7 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
     ncaps = dobj.NCAPS
     ave = np.zeros((8,512,512),dtype=np.double)
     imageCount = 0
-
+    
     loopAgain = False
     raf = None
     runBase = 1
@@ -924,7 +924,7 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
                 (mdB,dataB) = back.getFrame()
                 dataF = dataF - dataB #  Put F-B in F as a kludge.
 
-            frameNum = fIdex // ncaps  # not a typo "//" is integer division 
+            frameNum = (runBase-1  + fIdex) // ncaps  # not a typo "//" is integer division 
             dataArray = np.resize(dataF,[512,512])
             dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
             ave[ (mdF.capNum-1) % ncaps,:,:] += dataArray
@@ -953,6 +953,8 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
         else:
             loopAgain = False
             break  # EXIT WHILE
+
+        
         
     # WHILE } 
 
@@ -967,7 +969,7 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
     endPixY = startPixY + roi[3]
     startPixX = roi[0]
     endPixX = startPixX + roi[2]
-    nImages =  fore.numImages // ncaps  # not a typo "//" is integer division 
+    nImages =  imageCount // ncaps  # not a typo "//" is integer division 
     
 
     for fn in range( nImages ): 
@@ -1094,7 +1096,7 @@ def defineListOfTests():
     lot.append( ("Move_IR_Along_Caps_2ROIS", "SRS single bright pulse, moves from cap1" \
         "to cap 8. Has a bright ROI and a dark ROI.") )
     
-    lot.append( ("Cornell_Noise", "Take 1000 images x 8CAPS. Copmpute RMS from ave.") )
+    lot.append( ("Cornell_Noise", "Take 1000 images x 8CAPS. Compute RMS from ave.") )
     
     return lot
 
