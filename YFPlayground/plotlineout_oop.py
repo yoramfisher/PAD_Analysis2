@@ -16,6 +16,7 @@
 # v 0.6 8/25/23 Allow two roi's
 # v 0.7 9/18/23 Add new routines for Cornell testing
 
+# v 0.8 9/21/23 Allow IP differences in SRS boxes in same source
 #
 # INSTRUCTIONS
 #
@@ -60,6 +61,8 @@ import time
 #from IPython.display import display
 import UI_utils
 
+import configparser
+
 
 #
 # Define some globals
@@ -92,6 +95,28 @@ class dataObject:
         self.TEST_ON_MAC = False
         #self.alternateTitle = None
         self.runVaryCommand = None
+
+        # Some routine use an SRS DG645 box:
+        self.DG_IP_ADDR = "192.168.11.225"   # default
+        config = configparser.ConfigParser()
+        iniFile = r"config.ini"
+        ret = config.read(iniFile)
+        if ret:
+            kPeripheral = 'Peripheral'
+            kIP = 'IP'
+            self.DG_IP_ADDR = config[kPeripheral][kIP]
+            if VERBOSE:
+                print(f"Read INI file {iniFile} section: {kPeripheral} key:{kIP} = {self.DG_IP_ADDR}")
+
+        else:
+            if VERBOSE:
+                print(f"**No config file found: ({iniFile}). Using defaults.")
+
+            
+        
+
+        
+
         
 
 
@@ -576,9 +601,7 @@ class dataObject:
         """
         Take Data        
         """        
-        # Using an SRS DG645 box:
-        IP_ADDR = "192.168.11.225"  
-        c = comObject( 1, IP_ADDR )
+        c = comObject( 1, self.DG_IP_ADDR )
         r = c.tryConnect()
 
         # Future me:  dg is used in userFunction to adjust SRS box at each run frame.
