@@ -116,7 +116,6 @@ class dataObject:
         
 
         
-
         
 
 
@@ -459,6 +458,8 @@ class dataObject:
             self.newTitle = "Mean over ROI - Average all images"
 
             # Note - there are two outputs. See self.secondAnalysis
+            self.fcnPlot2 = imagePlots
+            self.secondTitle = "std dev of each CAP"
 
         
         else:
@@ -715,8 +716,14 @@ class dataObject:
                 break            
         # WHILE LOOP
 
-        plt.show()
-
+        
+        if hasattr(self, 'fcnPlot2'):
+            self.fcnPlot2 ( self, self.secondAnalysis, title = self.secondTitle ) 
+            
+            
+        plt.show()    
+        
+        
 
 
 
@@ -771,8 +778,53 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     xd.gradient_over_lineout(data_array)
     #plt.show()
  
-   
+
+#
+# 
+#    
+def imagePlots(dobj, img, title):
+    """
+    Plot the standard deviation as an image for 8 caps
+    """
+
+    indexVal = 0
+    c = 0
+    fig,ax = plt.subplots(2,4)
+
+    plt.title(title) 
+
+    vmin= -20
+    vmax = 20
+
+    for indexVal in range(8):
+        indexRow = int(indexVal/4) 
+        indexCol = int(indexVal%4)
+        
+        image = ax[indexRow,indexCol].imshow( np.clip(\
+            img[c, :, :], vmin, vmax) ,\
+                cmap = "viridis")
+        image.set_clim(vmin, vmax)
+
+        if indexCol == 0:
+            # Add a colorbar
+            # Optionally, set the colorbar scale explicitly
+            cbar = fig.colorbar(image, aspect=4, ax = ax[indexRow,indexCol] )
+      
+        
+        c += 1
+
+    # endfor 
+    fig.set_size_inches(12, 4)    
+    fig.subplots_adjust(wspace = 0.645, hspace = -0.2) # space is padding height
+    plt.tight_layout()
+
     
+    
+
+    
+        
+            
+  
 
 #
 # Plot <n> caps. Plot mean of ROI versus frame number
@@ -1009,11 +1061,16 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
     # We want RMS of each pixel.
     rmsPixels = np.zeros((8,512,512),dtype=np.double) # 8 CAPS, imageH, imageW
     
+    print("--- this takes a long time ~ 30 seconds ---")
+
+    img2 = np.zeros( (nImages, ncaps, 512, 512), dtype = np.double)
     for cn in range (ncaps):
-        rmsPixels[cn, :, :] = np.std( dobj.foreStack[:, cn, :, :], axis=0 )
+        for fn in range( nImages ): 
+            img2[fn, cn, :, :] = dobj.foreStack[fn, cn, :, :] - ave[cn, :, :]
+        rmsPixels[cn, :, :] = np.std( img2[:, cn, :, :], axis = 0 )
 
     dobj.secondAnalysis = rmsPixels
-    # TODO image this ^ 
+    
     
 
     return data
@@ -1049,7 +1106,7 @@ def plotLinearity(dobj, data=None, runnum = 0):
         dataArray = np.resize(dataF,[512,512])
         dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
 
-    #  [ Frame, Cap, Y , X ] # TODO: check Y,X is correct
+    #  [ Frame, Cap, Y , X ] 
     
     # rio is [X,Y,W,H]
     startPixY = roi[1]
@@ -1093,7 +1150,7 @@ def plotEachCapLineout(dobj,  data=None, runnum = 0):
         dataArray = np.resize(dataF,[512,512])
         dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
 
-    #  [ Frame, Cap, Y , X ] # TODO: check Y,X is correct
+    #  [ Frame, Cap, Y , X ] 
     
     # rio is [X,Y,W,H]
     startPixY = roi[1]
