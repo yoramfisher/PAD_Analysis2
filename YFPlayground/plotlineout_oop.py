@@ -458,6 +458,7 @@ class dataObject:
             #self.alternateTitle = "Mean over ROI - Average all images" 
             self.newTitle = "Mean over ROI - Average all images"
 
+            # Note - there are two outputs. See self.secondAnalysis
 
         
         else:
@@ -704,9 +705,9 @@ class dataObject:
             self.fcnPlot (roiSum, title, options = self.fcnPlotOptions)
 
             if hasattr(self, "roiB"):
-                # repeat the analsys with a second roi
+                # repeat the analysis with a second ROI
                 repeat += 1  # 0 --> 1
-                self.roi = self.roiB # re define the roi
+                self.roi = self.roiB # redefine the ROI
                 self.newTitle = "roiB"
                 if repeat >= 2:
                     break
@@ -930,7 +931,7 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
     imageCount = 0
     
     loopAgain = False
-    raf = None
+    raf = None   # Read Additional Files - needed when taking more than 1000 frames.
     runBase = 1
 
     try:
@@ -940,6 +941,7 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
 
     loopAgain = True
 
+    # Special case when more than 1000 frames are taken, we need to loop over multiple files. 
     while loopAgain:
         for fIdex in range( fore.numImages):
             (mdF,dataF) = fore.getFrame()
@@ -1001,6 +1003,18 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
                 np.average( ave[cn, startPixY:endPixY, startPixX:endPixX] )
             data[runnum, fn,cn] = V
             #print( fn, cn, roiSum)
+
+
+    # Secondary analysis here?
+    # We want RMS of each pixel.
+    rmsPixels = np.zeros((8,512,512),dtype=np.double) # 8 CAPS, imageH, imageW
+    
+    for cn in range (ncaps):
+        rmsPixels[cn, :, :] = np.std( dobj.foreStack[:, cn, :, :], axis=0 )
+
+    dobj.secondAnalysis = rmsPixels
+    # TODO image this ^ 
+    
 
     return data
 
