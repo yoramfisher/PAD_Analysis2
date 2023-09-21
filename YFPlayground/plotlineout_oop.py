@@ -95,6 +95,7 @@ class dataObject:
         self.TEST_ON_MAC = False
         #self.alternateTitle = None
         self.runVaryCommand = None
+        self.delayBetweenRuns = None
 
         # Some routine use an SRS DG645 box:
         self.DG_IP_ADDR = "192.168.11.225"   # default
@@ -462,6 +463,39 @@ class dataObject:
             self.secondTitle = "std dev of each CAP"
 
         
+         # ****************************************************
+        elif self.strDescriptor == "Cornell_Stability":               
+            self.setname = 'xpad-cornell-stability'
+            self.nFrames = 100  # frames Per Run  
+            
+            self.integrationTime = 500 # 500ns
+            self.interframeTime = 200  # 200 ns 
+            
+            # create a list of commands to send to hardware via mmcmd 
+            unique_commands = [ 
+                "Cap_Select 0x1FF",  # 8 CAPS
+                "Trigger_Mode 0",     # SW trigger
+                "Exposure_Mode 0"
+            ]
+           
+            #self.runVaryCommand="""
+            self.varList = [100] 
+            self.runFrameCommand = None
+            self.innerVarList = []
+            self.inn
+            erVarCommand = "" 
+            self.delayBetweenRuns = 100  # ms VARY THIS to see effct of time drift
+
+            # ANALYZE PROPERTIES
+            self.roi = [10, 10, 118, 118]
+            self.NCAPS = 8 # can this be pulled from file?
+            self.fcnToCall = calcBackgroundStats
+            self.roiSumNumDims = 3
+            self.fcnPlot = prettyPlot   
+            #self.alternateTitle = "Mean over ROI - Average all images" 
+            self.newTitle = "Mean over ROI - Average all images"
+
+            
         else:
              raise Exception(" !Unknown string! ") 
 
@@ -589,6 +623,9 @@ class dataObject:
                     
             xd.run_cmd( f"status -wait" )
             self.runCount += 1
+
+            if self.delayBetweenRuns:
+                time.sleep( self.delayBetweenRuns )
 
 
        
@@ -1191,6 +1228,8 @@ def defineListOfTests():
         "to cap 8. Has a bright ROI and a dark ROI.") )
     
     lot.append( ("Cornell_Noise", "Take 1000 images x 8CAPS. Compute RMS from ave.") )
+    lot.append( ("Cornell_Stability", "Take 1000 images x 8CAPS. Compute Mean over time.") )
+    
     
     return lot
 
