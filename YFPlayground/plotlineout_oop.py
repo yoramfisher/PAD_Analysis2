@@ -17,7 +17,7 @@
 # v 0.7 9/18/23 Add new routines for Cornell testing
 
 # v 0.8 9/21/23 Allow IP differences in SRS boxes in same source
-# Hi from Sydor!!
+
 #
 # INSTRUCTIONS
 #
@@ -88,15 +88,17 @@ class dataObject:
         self.MessageBeforeBackground = None
         self.MessageAfterBackground = None
         self.fcnPlotOptions = None
+        self.runVaryCommand = None
+        self.delayBetweenRuns = None
 
+        # below sets run specific values
         self.createObject()
+
         self.overwrite = True  # Set to true to delete previous runs
         self.bTakeData = bTakeData
         self.bAnalyzeData = bAnalyzeData
         self.TEST_ON_MAC = False
-        #self.alternateTitle = None
-        self.runVaryCommand = None
-        self.delayBetweenRuns = None
+        
 
         # Some routine use an SRS DG645 box:
         self.DG_IP_ADDR = "192.168.11.225"   # default
@@ -430,7 +432,7 @@ class dataObject:
         # ****************************************************
         elif self.strDescriptor == "Cornell_Noise":               
             self.setname = 'xpad-cornell-noise'
-            self.nFrames = 1000  # frames Per Run  
+            self.nFrames = 100  # frames Per Run  
           
             # We ARE 'allowed' to change delay param in a run (!)
             
@@ -451,12 +453,14 @@ class dataObject:
             self.innerVarCommand = "" 
 
             # ANALYZE PROPERTIES
-            self.roi = [10, 10, 118, 118]
+            #self.roi = [10, 10, 118, 118] 
+            self.roi = [10, 128 + 10, 118, 118] 
+            self.roiB = [10+128, 128, 118, 118]
             self.NCAPS = 8 # can this be pulled from file?
             self.fcnToCall = calcBackgroundStats
             self.roiSumNumDims = 3
             self.fcnPlot = prettyPlot   
-            #self.alternateTitle = "Mean over ROI - Average all images" 
+            
             self.newTitle = "Mean over ROI - Average all images"
 
             # Note - there are two outputs. See self.secondAnalysis
@@ -480,20 +484,24 @@ class dataObject:
             ]
            
             #self.runVaryCommand="""
-            self.varList = [100] 
+            self.varList = [100,100,100,100,100] # fill with dummy values so it runs <n> times 
             self.runFrameCommand = None
             self.innerVarList = []
-            self.inn
-            erVarCommand = "" 
-            self.delayBetweenRuns = 100  # ms VARY THIS to see effct of time drift
+            self.innerVarCommand = "" 
+            #
+            #
+            self.delayBetweenRuns = 5  # in seconds VARY THIS to see effect of time drift
+            #
+            #
 
             # ANALYZE PROPERTIES
             self.roi = [10, 10, 118, 118]
+            
             self.NCAPS = 8 # can this be pulled from file?
             self.fcnToCall = calcBackgroundStats
             self.roiSumNumDims = 3
             self.fcnPlot = prettyPlot   
-            #self.alternateTitle = "Mean over ROI - Average all images" 
+            
             self.newTitle = "Mean over ROI - Average all images"
 
             
@@ -626,6 +634,8 @@ class dataObject:
             self.runCount += 1
 
             if self.delayBetweenRuns:
+                if VERBOSE:
+                    print(f"--Delay {self.delayBetweenRuns} seconds --")
                 time.sleep( self.delayBetweenRuns )
 
 
@@ -831,7 +841,7 @@ def imagePlots(dobj, img, title):
 
     plt.title(title) 
 
-    vmin= -20
+    vmin= 0
     vmax = 20
 
     for indexVal in range(8):
@@ -1229,7 +1239,8 @@ def defineListOfTests():
         "to cap 8. Has a bright ROI and a dark ROI.") )
     
     lot.append( ("Cornell_Noise", "Take 1000 images x 8CAPS. Compute RMS from ave.") )
-    lot.append( ("Cornell_Stability", "Take 1000 images x 8CAPS. Compute Mean over time.") )
+    lot.append( ("Cornell_Stability", "Take 1000 images x 8CAPS. Compute Mean over time. "
+                  "Set self.delayBetweenRuns in units of seconds.") )
     
     
     return lot
