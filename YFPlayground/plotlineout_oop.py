@@ -855,7 +855,7 @@ def imagePlots(dobj, img, title):
     c = 0
     fig,ax = plt.subplots(2,4)
     # Set the main title for the entire figure
-    fig.suptitle = title
+    fig.suptitle(title)
 
     vmin= 0
     vmax = 20
