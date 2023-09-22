@@ -18,6 +18,13 @@
 
 # v 0.8 9/21/23 Allow IP differences in SRS boxes in same source
 
+# ***** git instructions *****
+#  If weirdness you may need this - but probably not.
+# git checkout HEAD -- plotlineout_oop.py   (any file name)
+# Normally just this to pull over changes from the cloud
+# git fetch
+# git checkout origin/yf-newcode
+
 #
 # INSTRUCTIONS
 #
