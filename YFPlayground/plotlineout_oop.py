@@ -22,6 +22,7 @@
 #  If weirdness you may need this - but probably not.
 # git checkout HEAD -- plotlineout_oop.py   (any file name)
 # Normally just this to pull over changes from the cloud
+# git stash
 # git fetch
 # git checkout origin/yf-newcode
 
@@ -189,7 +190,7 @@ class dataObject:
             
             self.roi = [90, 60, 10, 10]
             self.NCAPS = 3 # can this be pulled from file?
-            self.fcnToCall = plotLinearity
+            self.fcnToCall = calcLinearity
             self.roiSumNumDims = 3
             self.fcnPlot = prettyPlot
   
@@ -220,7 +221,7 @@ class dataObject:
 
             self.roi = [46, 92, 32, 20]
             self.NCAPS = 3 # can this be pulled from file?
-            self.fcnToCall = plotLinearity
+            self.fcnToCall = calcLinearity
             self.roiSumNumDims = 3
             self.fcnPlot = prettyPlot
 
@@ -253,7 +254,7 @@ class dataObject:
 
             self.roi = [0, 7*16, 128, 16]
             self.NCAPS = 8 # can this be pulled from file?
-            self.fcnToCall = plotEachCapLineout
+            self.fcnToCall = calcEachCapLineout
             self.roiSumNumDims = 4
             self.fcnPlot = prettyAllCapsInALine
 
@@ -288,7 +289,7 @@ class dataObject:
 
             self.roi = [4, 0*16, 128, 16]
             self.NCAPS = 8 # can this be pulled from file?
-            self.fcnToCall = plotEachCapLineout
+            self.fcnToCall = calcEachCapLineout
             self.roiSumNumDims = 4
             self.fcnPlot = prettyAllCapsInALine    
 
@@ -333,7 +334,7 @@ class dataObject:
 
             # ANALYZE PROPERTIES
             self.roi = [30, 71, 16, 4]
-            self.fcnToCall = plotLinearity
+            self.fcnToCall = calcLinearity
             self.roiSumNumDims = 4
 
             #self.roi = [4, 0*16, 128, 16]
@@ -394,7 +395,7 @@ class dataObject:
 
             # ANALYZE PROPERTIES
             self.roi = [32,71,16,4]
-            self.fcnToCall = plotLinearity
+            self.fcnToCall = calcLinearity
             self.roiSumNumDims = 4
 
             #self.roi = [4, 0*16, 128, 16]
@@ -432,7 +433,7 @@ class dataObject:
 
             self.roi = [0, 7*16, 128, 16]
             self.NCAPS = 8 # can this be pulled from file?
-            self.fcnToCall = plotEachCapLineout
+            self.fcnToCall = calcEachCapLineout
             self.roiSumNumDims = 4
             self.fcnPlot = prettyAllCapsInALine    
 
@@ -460,9 +461,10 @@ class dataObject:
             self.innerVarCommand = "" 
 
             # ANALYZE PROPERTIES
+            # roi is [X,Y, W, H ]
             #self.roi = [10, 10, 118, 118] 
-            self.roi = [10, 128 + 10, 118, 118] 
-            self.roiB = [10+128, 128, 118, 118]
+            self.roi = [10, 128 + 10, 108, 108] 
+            self.roiB = [10+128, 128, 108, 108]
             self.NCAPS = 8 # can this be pulled from file?
             self.fcnToCall = calcBackgroundStats
             self.roiSumNumDims = 3
@@ -502,14 +504,18 @@ class dataObject:
             #
 
             # ANALYZE PROPERTIES
-            self.roi = [10, 10, 118, 118]
+            self.roi = [10, 128 + 10, 108, 108]
+            ###self.roiB = [128+10, 10, 108, 108]
             
             self.NCAPS = 8 # can this be pulled from file?
-            self.fcnToCall = calcBackgroundStats
+
+            self.fcnToCall = calcLinearity
             self.roiSumNumDims = 3
-            self.fcnPlot = prettyPlot   
+
+            self.fcnPlot = prettyPlot_TODO   
             
-            self.newTitle = "Mean over ROI - Average all images"
+            self.newTitle = "Mean over ROI - Background subtracted. Using first run only"
+            self.computeBackgroundFromFirstRun = True
 
             
         else:
@@ -696,11 +702,13 @@ class dataObject:
        
         roiSum = None
         repeat = 0
-        title = ""
-        runBase = 1
-        backFile = None
+        
 
-        while True:        
+
+        while True:
+            title = ""
+            runBase = 1
+            backFile = None
 
             for runnum in range(NRUNS):
                 runname = f"run_{runnum+1}"
@@ -749,12 +757,13 @@ class dataObject:
                 if self.runVaryCommand:
                     title = f"{self.runVaryCommand} {self.varList}"
 
-
-                if hasattr(self, "newTitle"):
-                    title = self.newTitle + ":" + title
-
+            
+            #ENDFOR
+            if hasattr(self, "newTitle"):
+                title = self.newTitle + ":" + title
 
             
+                
             #
             #  fcnPlot is the function to generate plot. It is defined in the IF's above.
             #
@@ -845,8 +854,8 @@ def imagePlots(dobj, img, title):
     indexVal = 0
     c = 0
     fig,ax = plt.subplots(2,4)
-
-    plt.title(title) 
+    # Set the main title for the entire figure
+    fig.suptitle = title
 
     vmin= 0
     vmax = 20
@@ -922,6 +931,51 @@ def prettyPlot(data, title, options = None):
     #plt.show(block= True) 
 
 
+
+#
+# Plot <n> caps. Plot mean of ROI versus frame number
+#  data is 3 dimensions: data should be [nRuns, nFrames, nCaps]
+# like prettyplot, but each run is appended in the list along the x axis
+def prettyPlot_TODO(data, title, options = None):
+    nruns = len(data)
+    ncaps = len(data[0,0] )
+    fig, ax = plt.subplots()
+    #plt.figure(1)
+
+    for n in range(nruns):    
+        nframes = len(data [0])
+        for c in range(ncaps):
+
+            x = .5 +.5*(n / (nruns))
+            if c%5 == 0:
+                clr = (x,0,0)
+            elif c%5 == 1:
+                clr = (x,x,0)
+            elif c%5 == 2:
+                clr = (0,x,0)
+            elif c%5 == 3:
+                clr = (0,x,x)
+            elif c%5 == 4:
+                clr = (0,0,x)
+
+            lbl = ""
+            if n == 0:
+                lbl = f"Cap:{c+1}"   
+
+            xrange = range(n*nframes, (n+1)*nframes, 1)     
+
+            ax.plot( xrange, data[n,:,c], 
+                color=clr, label = lbl )
+
+
+    plt.legend()
+    plt.xlabel('N')
+    plt.ylabel('mean (ADU)')
+    plt.title( title )
+    ax.yaxis.set_minor_locator( MultipleLocator(1000))
+
+    
+    #plt.show(block= True) 
 
 #
 #   TODO
@@ -1112,32 +1166,71 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
             #print( fn, cn, roiSum)
 
 
-    # Secondary analysis here?
-    # We want RMS of each pixel.
-    rmsPixels = np.zeros((8,512,512),dtype=np.double) # 8 CAPS, imageH, imageW
-    
-    print("--- this takes a long time ~ 30 seconds ---")
+    if not hasattr(dobj, "secondAnalysis"):
+        # Secondary analysis here?
+        # We want RMS of each pixel.
+        rmsPixels = np.zeros((8,512,512),dtype=np.double) # 8 CAPS, imageH, imageW
+        
+        print("--- this takes a long time ~ 30 seconds ---")
 
-    img2 = np.zeros( (nImages, ncaps, 512, 512), dtype = np.double)
-    for cn in range (ncaps):
-        for fn in range( nImages ): 
-            img2[fn, cn, :, :] = dobj.foreStack[fn, cn, :, :] - ave[cn, :, :]
-        rmsPixels[cn, :, :] = np.std( img2[:, cn, :, :], axis = 0 )
+        img2 = np.zeros( (nImages, ncaps, 512, 512), dtype = np.double)
+        for cn in range (ncaps):
+            for fn in range( nImages ): 
+                img2[fn, cn, :, :] = dobj.foreStack[fn, cn, :, :] - ave[cn, :, :]
+            rmsPixels[cn, :, :] = np.std( img2[:, cn, :, :], axis = 0 )
 
-    dobj.secondAnalysis = rmsPixels
+        dobj.secondAnalysis = rmsPixels
     
     
 
     return data
 
-
-def plotLinearity(dobj, data=None, runnum = 0):
+def calcMeanVersusTime(dobj, data=None, runnum=0):
     """
-   
-    title 
+    
+    """
+    if hasattr(dobj, "back"):
+        back = dobj.back
+
+    fore = dobj.fore
+    roi = dobj.roi
+    ncaps = dobj.NCAPS
+
+
+    for fIdex in range( fore.numImages):
+        (mdF,dataF) = fore.getFrame()
+        if back:
+            (mdB,dataB) = back.getFrame()
+            dataF = dataF - dataB #  Put F-B in F as a kludge.
+
+        frameNum = fIdex // ncaps  # not a typo "//" is integer division 
+        dataArray = np.resize(dataF,[512,512])
+        dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
+
+    #  [ Frame, Cap, Y , X ] 
+    
+    # ROI is [X,Y,W,H]
+    startPixY = roi[1]
+    endPixY = startPixY + roi[3]
+    startPixX = roi[0]
+    endPixX = startPixX + roi[2]
+    nImages =  fore.numImages // ncaps  # not a typo "//" is integer division 
+    
+
+    for fn in range( nImages ): 
+        for cn in range (ncaps):
+            data[runnum, fn,cn] = np.average( dobj.foreStack[fn, cn, startPixY:endPixY, startPixX:endPixX] )
+            #print( fn, cn, roiSum)
+
+    return data
+
+
+
+def calcLinearity(dobj, data=None, runnum = 0):
+    """
     data is [#run, #frame, #cap]
     runnum increments from 0 to #run-1
-    NOTE - Data is NOT plotted, rather data is storted in array data.
+    NOTE - Data is stored in array data.
     stores the average value over the ROI.
     """
    
@@ -1161,8 +1254,27 @@ def plotLinearity(dobj, data=None, runnum = 0):
         dataArray = np.resize(dataF,[512,512])
         dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
 
+
+    # optionaly  compute the average of just the first run, and use that as the background
+    # for all subsequent runs
+    if hasattr(dobj, "computeBackgroundFromFirstRun") and runnum == 0:
+        ave = np.zeros((8,512,512),dtype=np.double)
+        for fIdex in range( fore.numImages):
+            frameNum = fIdex // ncaps
+            c = fIdex % ncaps
+            ave[c, :, :] += dobj.foreStack[frameNum,c,:,:]
+
+        ave = ave /  (fore.numImages / ncaps)   
+        dobj.backFromFirstRunAve = ave 
     #  [ Frame, Cap, Y , X ] 
     
+
+    if hasattr(dobj, "backFromFirstRunAve"):
+        for fIdex in range( fore.numImages):
+            frameNum = fIdex // ncaps
+            c = fIdex % ncaps
+            dobj.foreStack[frameNum,c,:,:] -=  dobj.backFromFirstRunAve[c, :, :]
+        
     # rio is [X,Y,W,H]
     startPixY = roi[1]
     endPixY = startPixY + roi[3]
@@ -1179,12 +1291,12 @@ def plotLinearity(dobj, data=None, runnum = 0):
     return data
 
 
-def plotEachCapLineout(dobj,  data=None, runnum = 0):
+def calcEachCapLineout(dobj,  data=None, runnum = 0):
     """
-    data is [#run, #frame, #cap]
+    data is [#run, #frame, #cap] = [list of data]
     runnum increments from 0 to #run-1
-    NOTE - Data is NOT plotted, rather data is storted in array data.
-    stores the average value over the ROI.
+    NOTE - Data is stored in array data. Each element [r,f,c] is a list of values.
+    
     """
    
     back = None
