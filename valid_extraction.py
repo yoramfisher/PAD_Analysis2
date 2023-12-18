@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 import Big_keck_load as BKL
 import CreateSim
 import math
+import pickle
 from scipy.optimize import curve_fit
 
 fit_invoke = 0;
+fit_max_eval = 300000
 def twoGauss(xdata, a, b, c, d, e, f, g):
     global fit_invoke;
     fit_invoke += 1;
@@ -46,6 +48,23 @@ def fourGauss(xdata, a, b, c, d, e, f, g, j, k, l, m, n, o):
     #print(xdata, result_y)
     return result_y;
 
+def fiveGauss(xdata, a, b, c, d, e, f, g, j, k, l, m, n, o, p, q, r):
+    global fit_invoke;
+    fit_invoke += 1;
+    #print(fit_invoke, a, b, c, d, e, f, g, j, k, l);
+    result_y = np.arange(xdata.size).astype(np.double);
+    for x_idx in range(xdata.size):
+        x = xdata[x_idx];
+        result_y[x_idx] = a * math.exp(-0.5*((x-b)/c)**2) + \
+        d * math.exp(-0.5*((x-e)/f)**2) + \
+            g * math.exp(-0.5*((x-j)/k)**2) + \
+                l * math.exp(-0.5*((x-m)/n)**2) + \
+                    o * math.exp(-0.5*((x-p)/q)**2) + r
+    #print(xdata, result_y)
+    return result_y;
+
+
+
 def clip_hist(hist_data, clip_thresh):
     hist_data.sort();
     num_valid = len(hist_data);
@@ -58,7 +77,7 @@ NUM_CAPS = 8
 
 # Initialize the filenames
 #bgFilename = '/mnt/raid/keckpad/set-phHist/run-4ms_back/frames/4ms_back_00000001' +'.raw'
-bgFilename = '/mnt/raid/keckpad/set-HeadRework/run-ph_back_500us/frames/ph_back_500us_00000001' +'.raw';
+bgFilename = 'adu_calc/30KV_1mA_25ms_b_00000001' +'.raw';
 #fgFilename = '/mnt/raid/keckpad/set-issbufPIX_40KV/run-scan_issbufPIX_f_1200/frames/scan_issbufPIX_f_1200_00000001.raw';
 maskFilename = 'single_pix.csv';
 
@@ -89,7 +108,7 @@ numFiles = 8
 
 for num in range(numFiles):
     images = num * 1000 + 1
-    fgFilename = '/mnt/raid/keckpad/set-HeadRework/run-ph_45KV_fore500us/frames/ph_45KV_fore500us_' + '{:08d}'.format(images) + '.raw'
+    fgFilename = 'adu_calc/30KV_1mA_25ms_f_' + '{:08d}'.format(images) + '.raw'
     #fgFilename = '/mnt/raid/keckpad/set-HeadRework/run-ph_40KV_fore3ms/frames/ph_40KV_fore3ms_00000001.raw'
 # Iterate over all foreground images
     fgImageFile = open(fgFilename, "rb");
@@ -127,45 +146,66 @@ for cap_idx in range(NUM_CAPS):
 # Now histogram the arrays
 hist_pixels = [];
 # binRan = np.arange(-50,351);    # The bins for the histogram
-binRan = np.arange(-20,80);
+binRan = np.arange(-20,180);
 
 
 for cap_idx in range(NUM_CAPS):
     hist_pixels.append((np.histogram(clipped_pixels[cap_idx], bins=binRan))[0]);
 
 # # Now do the curve fitting
-# fit_pixels = [];
-# for cap_idx in range(NUM_CAPS):
+guess_array = [[],[],[]]
+fit_pixels = [[],[],[]]
+fit_params = [[],[],[]]
+for cap_idx in range(NUM_CAPS):
 # #   # Two Gauss
 #     guess_val = [ 1, 0, 10, 0.9, 30, 10, 0];
 #     guess_val[0] = np.max(hist_pixels);
 #     guess_val[3] = guess_val[0]*0.9;
     
-#     # Three Gauss
-#     # guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
-#     # guess_val[0] = np.max(hist_pixels)
-#     # guess_val[3] = guess_val[0]*0.9
-#     # guess_val[6] = guess_val[0]*0.2;
+     # Three Gauss
+    guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0]
+    guess_val[0] = np.max(hist_pixels)
+    guess_val[3] = guess_val[0]*0.9
+    guess_val[6] = guess_val[0]*0.5;
+    
+    guess_array[0] = guess_val
 
-#     # Four Gauss
-#     # guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0.2, 90, 10, 0]
-#     # guess_val[0] = np.max(hist_pixels)
-#     # guess_val[3] = guess_val[0]*0.9
-#     # guess_val[6] = guess_val[0]*0.2
-#     # guess_val[9] = guess_val[0]*0.1;
+    #     # Four Gauss
+    guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0.2, 90, 10, 0]
+    guess_val[0] = np.max(hist_pixels)
+    guess_val[3] = guess_val[0]*0.9
+    guess_val[6] = guess_val[0]*0.5
+    guess_val[9] = guess_val[0]*0.5;
+
+    guess_array[1] = guess_val
+
+    #     # Five Gauss
+    guess_val = [1, 0, 10, 0.9, 30, 10, 0.5, 60, 10, 0.2, 90, 10, 0.1, 120, 10, 0]
+    guess_val[0] = np.max(hist_pixels)
+    guess_val[3] = guess_val[0]*0.9
+    guess_val[6] = guess_val[0]*0.5
+    guess_val[9] = guess_val[0]*0.5
+    guess_val[12] = guess_val[0] *0.5
+
+    guess_array[2] = guess_val
     
 #     # Two Gauss
 #     fit_vals = curve_fit(twoGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
 #     fit_pixels.append(twoGauss(binRan[:-1], *fit_vals[0]));
 
 #     # Three Gauss
-#     # fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
-#     # fit_pixels.append(threeGauss(binRan[:-1], *fit_vals[0]));
+    fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_array[0], method='dogbox', max_nfev=fit_max_eval);
+    fit_pixels[0].append(threeGauss(binRan[:-1], *fit_vals[0]));
+    fit_params[0].append(fit_vals[0])
+     # Four Gauss
+    fit_vals = curve_fit(fourGauss, binRan[:-1], hist_pixels[cap_idx], guess_array[1], method='dogbox', max_nfev=fit_max_eval);
+    fit_pixels[1].append(fourGauss(binRan[:-1], *fit_vals[0]));
+    fit_params[1].append(fit_vals[0])
 
-#     # Four Gauss
-#     # fit_vals = curve_fit(fourGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
-#     # fit_pixels.append(fourGauss(binRan[:-1], *fit_vals[0]));
-
+    # Five Gauss
+    fit_vals = curve_fit(fiveGauss, binRan[:-1], hist_pixels[cap_idx], guess_array[2], method='dogbox', max_nfev=fit_max_eval)
+    fit_pixels[2].append(fiveGauss(binRan[:-1], *fit_vals[0]))
+    fit_params[2].append(fit_vals[0])
 #  #   print("Cap {} Fit Centers:".format(cap_idx))                   
 #     #print(fit_vals[0])
 #     # Two Gauss
@@ -178,14 +218,22 @@ for cap_idx in range(NUM_CAPS):
 #     # print("{}, {}, {}, {}".format(fit_vals[0][1], fit_vals[0][4], fit_vals[0][7], fit_vals[0][10]))
 
 # Do the plotting
-fig,axs = plt.subplots(NUM_CAPS,1)
-# Special case if only one cap
+fig,axs = plt.subplots(NUM_CAPS,3)
+NUM_FIT_FUNC = 3
+
+# Special case if only one cap FIXME XXX Need to revise with 2d array
 if NUM_CAPS == 1:
     axs = [axs]                 # Turn into a list so it can be subscripted
 
 for cap_idx in range(NUM_CAPS):
-    axs[cap_idx].hist(clipped_pixels[cap_idx], bins=binRan);
-    #axs[cap_idx].plot(binRan[:-1], fit_pixels[cap_idx], 'r--');
+    for fit_idx in range(NUM_FIT_FUNC):
+        axs[cap_idx][fit_idx].hist(clipped_pixels[cap_idx], bins=binRan);
+        axs[cap_idx][fit_idx].plot(binRan[:-1], fit_pixels[fit_idx][cap_idx], 'r--');
 
+#plt.show()
+#print(fit_vals)
 
-plt.show()
+# Pickle the results
+pickleFile = open('result_fullrange.pickle', 'wb')
+pickle.dump(fit_params, pickleFile)
+pickleFile.close()
