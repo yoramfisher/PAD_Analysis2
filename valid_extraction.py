@@ -129,7 +129,7 @@ pixelExtractor.singlePixelMat = pixelExtractor.singlePixelMat[:,:,:] # [caps, y1
 # Load background image # Need to re-load and average instead.
 #bgImage = np.fromfile(bgFilename, dtype=np.double).reshape((-1,512,512));
 
-numFiles = 8
+numFiles = 4
 
 for num in range(numFiles):
     images = num * 1000 + 1
@@ -171,7 +171,7 @@ for cap_idx in range(NUM_CAPS):
 # Now histogram the arrays
 hist_pixels = [];
 # binRan = np.arange(-50,351);    # The bins for the histogram
-binRan = np.arange(-20,80);
+binRan = np.arange(-20,180);
 
 for cap_idx in range(NUM_CAPS):
     hist_pixels.append((np.histogram(clipped_pixels[cap_idx], bins=binRan))[0]);
@@ -223,6 +223,10 @@ for cap_idx in range(CAP_LIMIT):
     guess_val[12] = guess_val[0] *0.5
 
     guess_array[2] = guess_val
+
+    # Prepare for output
+    mean_index = []             # A list of indices containing the means of peaks
+    sigma_index = []            # A list of indices containing the sigmas of peaks
     
 #     # Two Gauss
 #     fit_vals = curve_fit(twoGauss, binRan[:-1], hist_pixels[cap_idx], guess_val, method='dogbox');
@@ -233,19 +237,25 @@ for cap_idx in range(CAP_LIMIT):
         fit_vals = curve_fit(threeGauss, binRan[:-1], hist_pixels[cap_idx], guess_array[0], method='dogbox', max_nfev=fit_max_eval);
         fit_pixels[0].append(threeGauss(binRan[:-1], *fit_vals[0]));
         fit_params[0].append(fit_vals[0])
-
+        mean_index = [1, 4, 7]
+        sigma_index = [2, 5, 8]
     
     # Four Gauss
     if b_four_peak:
         fit_vals = curve_fit(fourGauss, binRan[:-1], hist_pixels[cap_idx], guess_array[1], method='dogbox', max_nfev=fit_max_eval);
         fit_pixels[1].append(fourGauss(binRan[:-1], *fit_vals[0]));
         fit_params[1].append(fit_vals[0])
-
+        mean_index = [1, 4, 7, 10]
+        sigma_index = [2, 5, 8, 11]
+        
     # Five Gauss
     if b_five_peak:
         fit_vals = curve_fit(fiveGauss, binRan[:-1], hist_pixels[cap_idx], guess_array[2], method='dogbox', max_nfev=fit_max_eval)
         fit_pixels[2].append(fiveGauss(binRan[:-1], *fit_vals[0]))
         fit_params[2].append(fit_vals[0])
+        mean_index = [ 1, 4, 7, 10, 13]
+        sigma_index = [ 2, 5, 8, 11, 14]
+        
 #  #   print("Cap {} Fit Centers:".format(cap_idx))                   
 #     #print(fit_vals[0])
 #     # Two Gauss
@@ -269,6 +279,7 @@ if test_mode:
     for fit_idx in range(NUM_FIT_FUNC):
         axs[fit_idx].hist(clipped_pixels[cap_idx], bins=binRan)
         axs[fit_idx].plot(binRan[:-1], fit_pixels[fit_idx][cap_idx], 'r--');
+    plt.savefig('peak_test.png')
     plt.show()
         
 else:
@@ -282,18 +293,36 @@ else:
     for cap_idx in range(NUM_CAPS):
         axs[cap_idx].hist(clipped_pixels[cap_idx], bins=binRan);
         axs[cap_idx].plot(binRan[:-1], fit_pixels[peak_idx][cap_idx], 'r--');
+    plt.savefig('peak_fit.png')
     plt.show()
 
-print("Fit values")
-print(fit_vals)
-print("Histogram range")
-print(binRan)
-print("Clipped pixels[0]")
-print(clipped_pixels[0])
-print("Clipped pixels full")
-print(clipped_pixels)
-print("Fit pixels")
-print(fit_pixels)
+#print("Fit values")
+#print(fit_vals)
+#print("Histogram range")
+#print(binRan)
+#print("Clipped pixels[0]")
+#print(clipped_pixels[0])
+#print("Clipped pixels full")
+#print(clipped_pixels)
+#print("Fit pixels")
+#print(fit_pixels)
+
+if analysis_mode:
+    peak_sel = num_peaks - 3;   # Starts at 3 peaks
+    for cap_idx in range(NUM_CAPS):
+        print("Cap {} Parameters".format(cap_idx))
+        mu_string = "Mu".rjust(8)
+        sigma_string = "Sigma".rjust(8)
+        for peak_idx in range(num_peaks):
+            #print(peak_sel,cap_idx,mean_index,[sigma_idx],peak_idx)
+            #print(fit_params[peak_sel][cap_idx])
+            mu = fit_params[peak_sel][cap_idx][mean_index[peak_idx]]
+            sigma = math.fabs(fit_params[peak_sel][cap_idx][sigma_index[peak_idx]])
+            mu_string += "{:11.3e}  ".format(mu)
+            sigma_string += "{:11.3e}  ".format(sigma)
+
+        print(mu_string)
+        print(sigma_string)
 
 # Pickle the results
 pickleFile = open('result_fullrange.pickle', 'wb')
