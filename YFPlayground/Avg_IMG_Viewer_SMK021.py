@@ -520,7 +520,7 @@ def defineListOfTests():
 
 # INSTRUCTIONS
 # Run plotlineout_oop.py
-# Select Cornell_Noise.
+# Select Dark_cURRENT ,doesn exit yuet>.
 # make sure HW triggers aere setup
 #    it will save run1 and run2. they are identical. use one as F and one as B.
 
