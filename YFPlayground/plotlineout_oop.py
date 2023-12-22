@@ -48,7 +48,7 @@
 
 #
 # Issues with mmcmd - try this:
-# $mmclient -s -t &
+# mmclient -s -t &
 # mmcmd open 1
 #
 
@@ -269,10 +269,12 @@ class dataObject:
             self.MessageAfterBackground = "Plug the IR strobe trigger now"
             #self.setname = 'xpad-test1'
             self.setname = 'xpad-test2'
-            self.nFrames = 20  # frames Per Run
+            self.nFrames = 25  # frames Per Run
             # SRS is setup with PER of 100us, so 20 takes 2ms
             self.integrationTime = 3000000 # 3.0 millseconds
-            self.interframeTime = 500 
+            self.interframeTime = 200 
+            
+            self.varList = [200]
 
             # create a list of commands to send to hardware via mmcmd 
             unique_commands = [ 
@@ -282,16 +284,23 @@ class dataObject:
             
             self.runVaryCommand="InterFrame_NSec" 
             self.varRange = [500] 
-            self.runFrameCommand = self.userFunction 
+            self.runFrameCommand = self.usrFunction_DGCmd 
 
             self.innerVarCommand ="BURC" 
-            self.innerVarList = [i for i in range(1, self.nFrames)]
+            self.innerVarList = [i for i in range(1, self.nFrames+1)]
 
-            self.roi = [4, 0*16, 128, 16]
+            self.roi = [370,88,60,16]
             self.NCAPS = 8 # can this be pulled from file?
-            self.fcnToCall = calcEachCapLineout
+            #self.fcnToCall = calcEachCapLineout
             self.roiSumNumDims = 4
             self.fcnPlot = prettyAllCapsInALine    
+
+
+
+            #self.NCAPS = 3 # can this be pulled from file?
+            self.fcnToCall = calcLinearity
+            self.roiSumNumDims = 3
+            self.fcnPlot = prettyPlot
 
         # ****************************************************
         elif self.strDescriptor == "Move_IR_Along_Caps":
@@ -357,6 +366,7 @@ class dataObject:
             # SRS Burst Mode: Off. B=A+1us.   Vary A to move pulse into each CAP exposure 
             # Set HW parameters
             self.TakeBG = True
+            
             self.MessageBeforeBackground = "Disconnect the IR strobe trigger now"
             self.MessageAfterBackground = "Plug the IR strobe trigger now"
             #self.setname = 'xpad-test-1pulse-per-cap'
@@ -364,7 +374,7 @@ class dataObject:
             # SRS is setup as single pulse. 
             #self.integrationTime = 100000 # 100 us
             #self.interframeTime = 500 
-            self.setname = 'xp-1p-walk_2roiA'
+            self.setname = 'xp-1p-walk_2roiD'
             # frames Per Run . Step 100ns steps from 700ns * 8 = 5800ns is 58 steps!
             # 50ns steps over 800ns is 16 steps * 8 =  128
             self.nFrames = 130  
@@ -385,7 +395,7 @@ class dataObject:
             #self.innerVarList = ["{:12.6e}".format(500e-9 + i*(100e-6 + 500e-9)) for i in range(0,self.nFrames)] 
 
             #  increment A by 100 ns steps.  700ns * 8 = 56 steps
-            self.innerVarList = ["{:12.6e}".format( i*(100e-9)) for i in range(0,self.nFrames)] 
+            #self.innerVarList = ["{:12.6e}".format( i*(100e-9)) for i in range(0,self.nFrames)] 
 
             #  increment A by 50 ns steps.  700ns * 8 = 56 steps
             self.innerVarList = ["{:12.6e}".format( i*(50e-9)) for i in range(0,self.nFrames)] 
@@ -394,7 +404,7 @@ class dataObject:
  
 
             # ANALYZE PROPERTIES
-            self.roi = [32,71,16,4]
+            self.roi = [396, 87, 20, 16]
             self.fcnToCall = calcLinearity
             self.roiSumNumDims = 4
 
@@ -407,7 +417,7 @@ class dataObject:
             
             # nope self.fcnPlotOptions = {"waterfall":16000}
             # define a second ROI and plot that too.
-            self.roiB = [60,72,16,4] 
+            self.roiB = [396,15,20,16] 
         # ****************************************************
         elif self.strDescriptor == "Sweep_Integ1":               
             # How does the slope of dark frames change as we change the interframe1 time? 
@@ -450,12 +460,12 @@ class dataObject:
             # create a list of commands to send to hardware via mmcmd 
             unique_commands = [ 
                 "Cap_Select 0x1FF",  # 8 CAPS
-                "Trigger_Mode 0",     # SW trigger
+                "Trigger_Mode 2",     # HW trigger - Use External source to trigger.
                 "Exposure_Mode 0"
             ]
            
             #self.runVaryCommand="Readout_Delay"
-            self.varList = [100]
+            self.varList = [1,2]   # dummy values creates two runs. use one for F ne for B
             self.runFrameCommand = None
             self.innerVarList = []
             self.innerVarCommand = "" 
@@ -463,8 +473,8 @@ class dataObject:
             # ANALYZE PROPERTIES
             # roi is [X,Y, W, H ]
             #self.roi = [10, 10, 118, 118] 
-            self.roi = [10, 128 + 10, 108, 108] 
-            self.roiB = [10+128, 128, 108, 108]
+            self.roi = [266, 10, 108, 108] 
+            self.roiB = [266+128, 10, 108, 108]
             self.NCAPS = 8 # can this be pulled from file?
             self.fcnToCall = calcBackgroundStats
             self.roiSumNumDims = 3
@@ -1357,7 +1367,7 @@ def defineListOfTests():
     lot.append( ("Move_IR_Along_Caps_2ROIS", "SRS single bright pulse, moves from cap1" \
         "to cap 8. Has a bright ROI and a dark ROI.") )
     
-    lot.append( ("Cornell_Noise", "Take 1000 images x 8CAPS. Compute RMS from ave.") )
+    lot.append( ("Cornell_Noise", "Take 100 images x 8CAPS. Compute RMS from ave.") )
     lot.append( ("Cornell_Stability", "Take 1000 images x 8CAPS. Compute Mean over time. "
                   "Set self.delayBetweenRuns in units of seconds.") )
     
