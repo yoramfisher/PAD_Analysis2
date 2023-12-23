@@ -17,6 +17,7 @@
 # v 0.7 9/18/23 Add new routines for Cornell testing
 
 # v 0.8 9/21/23 Allow IP differences in SRS boxes in same source
+# v 0.9 12/23/23 Some fixes to SMK_021 Testing
 
 # ***** git instructions *****
 #  If weirdness you may need this - but probably not.
@@ -25,6 +26,10 @@
 # git stash
 # git fetch
 # git checkout origin/yf-newcode
+
+# Places you may need to edit this code
+# Search for the word 'clipping'  where some datas are clipped fir aethetics
+#  The std dev plot is one such case.
 
 #
 # INSTRUCTIONS
@@ -105,7 +110,7 @@ class dataObject:
         self.overwrite = True  # Set to true to delete previous runs
         self.bTakeData = bTakeData
         self.bAnalyzeData = bAnalyzeData
-        self.TEST_ON_MAC = False
+        self.TEST_ON_MAC = True ####  Debug!  False
         
 
         # Some routine use an SRS DG645 box:
@@ -465,8 +470,9 @@ class dataObject:
             ]
            
             #self.runVaryCommand="Readout_Delay"
-            self.varList = [1,2]   # dummy values creates two runs. use one for F ne for B
+            self.varList = [1,2]   # dummy values creates two runs. use one for F one for B
             self.runFrameCommand = None
+            
             self.innerVarList = []
             self.innerVarCommand = "" 
 
@@ -674,14 +680,17 @@ class dataObject:
         """
         Take Data        
         """        
-        c = comObject( 1, self.DG_IP_ADDR )
-        r = c.tryConnect()
 
-        # Future me:  dg is used in userFunction to adjust SRS box at each run frame.
+        if self.runFrameCommand :
 
-        self.dg = DG645( c )
-        self.dg.counter = 0 # truly python hackery
-        self.dg.send("*CLS") # Clear errors
+            c = comObject( 1, self.DG_IP_ADDR )
+            r = c.tryConnect()
+
+            # Future me:  dg is used in userFunction to adjust SRS box at each run frame.
+
+            self.dg = DG645( c )
+            self.dg.counter = 0 # truly python hackery
+            self.dg.send("*CLS") # Clear errors
          
   
         # Create new Runs
@@ -867,8 +876,9 @@ def imagePlots(dobj, img, title):
     # Set the main title for the entire figure
     fig.suptitle(title)
 
+    #  CLIPPING  If std dev plot appears at a fixed value it is becauyse it is clipped here
     vmin= 0
-    vmax = 20
+    vmax = 40
 
     for indexVal in range(8):
         indexRow = int(indexVal/4) 
