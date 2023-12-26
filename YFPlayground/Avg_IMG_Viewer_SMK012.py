@@ -43,16 +43,21 @@ class dataObject:
       self.TEST_ON_MAC = False
 
       self.strDescriptor = strDescriptor
-      self.rootPath = r"/mnt/raid/keckpad/set-xpad-cornell-noise"
+      self.rootPath = ""
       self.createObject()
       self.bClipData = False
       self.clipLow = 0
       self.clipHigh = 600
       self.bSaveFigs = True
+      self.baseFileName = "FF"
 
    def makeData(self):
       self.FFImage = 0 # set to 0 if dont want to FF
-      self.baseFileName = "run_1"
+      
+      self.fgFileName = "50KV_1ms_100ns_100ims_ff_0"
+      self.bgFileName = "0KV_1ms_100ns_100ims_ff_0"
+
+
       W = self.roi[2]
       H = self.roi[3]
       self.data = np.zeros((8, H, W),dtype=np.double)
@@ -62,12 +67,16 @@ class dataObject:
       kLeftSide = 0
       kRightSide = 1
       margin = 5
+
+      aveData = self.openRunAndCreateData_DC()
+      self.data = aveData
       for cap in range(8):
-         aveData = self.openRunAndCreateData( cap )
-         self.data[cap,:,:] = aveData    
-         meanValue[cap,kLeftSide] = np.average( aveData[margin: H-(2*margin), \
+         meanValue[cap,kLeftSide] = np.average( aveData[cap, margin: H-(2*margin), \
             margin: int(W/2)-(2*margin) ] ) # ignore the outer (margin) pixels on edge - one ASIC at a time
-         meanValue[cap,kRightSide] = np.average( aveData[margin: H-(2*margin), \
+      
+
+      
+         meanValue[cap,kRightSide] = np.average( aveData[cap, margin: H-(2*margin), \
             int(W/2) + margin: W- (2*margin) ] ) # ignore the outer (margin) pixels on edge - one ASIC at a time
        
       # Create a list L,R L,R L,R  for CAPS 1 to .. 8
@@ -85,8 +94,8 @@ class dataObject:
       #self.fgFileName = "0C_1s_dark-2"
       #self.bgFileName = "0C_100ns_dark-2"
 
-      self.fgFileName = "run_1"
-      self.bgFileName = "run_2"
+      self.fgFileName = "0KV_1s_100ns_100ims_0"
+      self.bgFileName = "0KV_100ns_100ns_100ims_0"
 
       W = self.roi[2]
       H = self.roi[3]
@@ -122,11 +131,14 @@ class dataObject:
       #foreFile = self.rootPath + \
       #     f"\\run-{self.baseFileName}{cap}_f" +  r"\frames" + f"\\{self.baseFileName}{cap}_f_00000001.raw"
       
+   
       backFile = self.rootPath +  \
-         f"/run-{self.baseFileName}{cap}_b" +  r"/frames" + f"/{self.baseFileName}{cap}_b_00000001.raw"
+         f"/run-{self.bgFileName}" +  r"/frames" + f"/{self.bgFileName}_00000001.raw"
       foreFile = self.rootPath + \
-           f"/run-{self.baseFileName}{cap}_f" +  r"/frames" + f"/{self.baseFileName}{cap}_f_00000001.raw"
-    
+         f"/run-{self.fgFileName}" +  r"/frames" + f"/{self.fgFileName}_00000001.raw"
+
+
+
       if self.TEST_ON_MAC: # Local Mac testing!
          foreFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' 
          backFile = f'/Users/yoram/Sydor/keckpad/30KV_1.5mA_40ms_f_00015001.raw' 
@@ -143,9 +155,9 @@ class dataObject:
       numImagesF = fore.numImages
       numImagesB = back.numImages
 
-
-      foreStack = np.zeros((1,512,512),dtype=np.double)
-      backStack = np.zeros((1,512,512),dtype=np.double)
+      # NOTE  - SN011 ( AKA SN020) had 1 CAP per file.  But this data set has 8 CAPS per file
+      foreStack = np.zeros((8,512,512),dtype=np.double)
+      backStack = np.zeros((8,512,512),dtype=np.double)
       FFStat = "noFF"
       if self.FFImage ==1 :
          fileObject = open(cwd + "/pickleFF.pi", 'rb')  # not at all tested will break 4 sure
@@ -162,16 +174,24 @@ class dataObject:
       #read all the image files
       for fIdex in range(numImagesB):
          (mdB,dataB) = back.getFrame()
-         backStack[0,:,:] += np.resize(dataB,[512,512])
+         # oh oh mdb.capNum appears to be incorrect!
+         cnum = fIdex % 8
+
+         backStack[cnum,:,:] += np.resize(dataB,[512,512])
+         print(".", end="")
             
-      avgBack = backStack/numImagesB
-      
+      avgBack = backStack/(numImagesB/self.NCAPS_per_file)
+
+
       for fIdex in range(numImagesF):
          (mdF,dataF) = fore.getFrame()
-      
-         foreStack[0,:,:] += np.resize(dataF,[512,512])
+         # oh oh mdb.capNum appears to be incorrect!
+         cnum = fIdex % 8
 
-      avgFore = foreStack/numImagesF
+         foreStack[cnum,:,:] += np.resize(dataF,[512,512])
+         print(".", end="")
+
+      avgFore = foreStack/(numImagesF/self.NCAPS_per_file)
 
       if self.TEST_ON_MAC:
          plotData = (avgFore) * ffCorect
@@ -240,14 +260,20 @@ class dataObject:
       #read all the image files
       for fIdex in range(numImagesB):
          (mdB,dataB) = back.getFrame()
-         backStack[mdB.capNum-1,:,:] += np.resize(dataB,[512,512])
+         # oh oh mdb.capNum appears to be incorrect!
+         cnum = fIdex % 8
+         backStack[cnum,:,:] += np.resize(dataB,[512,512])
+         print(f"{cnum}", end="")
+            
             
       avgBack = backStack/(numImagesB/self.NCAPS_per_file)
       
       for fIdex in range(numImagesF):
          (mdF,dataF) = fore.getFrame()
-      
-         foreStack[mdF.capNum-1,:,:] += np.resize(dataF,[512,512])
+         # oh oh mdb.capNum appears to be incorrect!
+         cnum = fIdex % 8
+         foreStack[cnum,:,:] += np.resize(dataF,[512,512])
+         print(f"{cnum}", end="")
 
       avgFore = foreStack/(numImagesF/self.NCAPS_per_file)
 
@@ -382,14 +408,17 @@ class dataObject:
       if self.strDescriptor == "Flatfield":            
          # with geo self.roi = [262, 144, 256+1, 128]
          self.roi = [256, 0, 256, 128]
-         self.NCAPS_per_file = 1 
+         self.NCAPS_per_file = 8 
          self.fcnToCall = self.makeData
          self.fcnPlot   =  self.makePlot
+         #self.rootPath = r"Z:\PRODUCTS\XRAY\KeckPAD\SMKeck_012_CdTe_LANL\Data\keckpad_sn012_dec2023\set-22DEC2023"
+         self.rootPath = r"D:\github"
 
 
       elif self.strDescriptor == "DarkCurrent":  
-         #self.rootPath = r"Z:\Project#_1300_1499\#1415 SM HE Keck CdTe LANL\set-SMK08SEPT23test"
+         
          self.rootPath = r"/mnt/raid/keckpad/set-xpad-cornell-noise"
+         self.rootPath = r"Z:\PRODUCTS\XRAY\KeckPAD\SMKeck_012_CdTe_LANL\Data\keckpad_sn012_dec2023\set-22DEC2023"  # \run-0KV_1s_100ns_100ims_0"
          self.roi = [256, 0, 256, 128]          
          self.NCAPS_per_file = 8 
          self.fcnToCall = self.makeData_DC
