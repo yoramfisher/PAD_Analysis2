@@ -7,7 +7,7 @@ img_height = 512;
 num_caps = 8;                   # Camera Parameters
 num_skip_images = 0;             # The number of images at the start to skip
 num_skip_frames = num_caps * num_skip_images; # Total frames to skip
-bad_asics = [1, 1, 1, 1; 1, 1, 0, 0; 1, 1, 1, 1; 1, 1, 1, 1]; # Set to 1 if the whole ASIC is bad
+bad_asics = [1, 1, 0, 0; 1, 1, 1, 1; 1, 1, 1, 1; 1, 1, 1, 1]; # Set to 1 if the whole ASIC is bad
 offset = 256;                   # Header size
 gap=1024;                       # Gap between rasters
 
@@ -27,13 +27,14 @@ bad_thresh = [0.9 0.8 0.75 0.5];
 prelim_bad_mask = zeros(512,512);
 prelim_bad_mask(129:256, 128*3+1) = 1;
 prelim_bad_mask = prelim_bad_mask != 0;
-                                    
+
 dark_image = zeros(img_height, img_width, num_caps);
 bright_image = zeros(img_height, img_width, num_caps);
 
 # Load in the the dark image and threshold
 ## Good filename
-dark_image_filename = 'dark_combined.raw';
+%dark_image_filename = 'dark_combined.raw';
+dark_image_filename = "D:\\github\\run-50KV_1ms_100ns_100ims_ff_0\\frames\\50KV_1ms_100ns_100ims_ff_0_00000001.raw"
 
 ## Load in the whole stack
 [raw_dark, num_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, 512, 512);
@@ -104,9 +105,9 @@ for frame_idx = 1:num_frames
   if dark_frame_idx < 1
     dark_frame_idx = 8;
   endif
-  
+
   curr_dark = dark_image(:,:,dark_frame_idx);
-  
+
   raw_bright(:,:,frame_idx) = raw_bright(:,:,frame_idx) - curr_dark;
   if mod(frame_idx, num_caps) < 1
     disp("Background subtracted frame:")

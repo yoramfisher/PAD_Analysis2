@@ -27,6 +27,11 @@ bright_filename = 'bright_combined.raw';
 dark_filename = 'reverse_dark.raw';
 bright_filename = 'reverse_bright.raw';
 
+
+dark_filename = "D:\\github\\run-0KV_1ms_100ns_100ims_ff_0\\frames\\0KV_1ms_100ns_100ims_ff_0_00000001.raw"
+bright_filename = "D:\\github\\run-50KV_1ms_100ns_100ims_ff_0\\frames\\50KV_1ms_100ns_100ims_ff_0_00000001.raw";
+
+
 [dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded dark image')
 printf("Dark frames count: %i\n", num_dark_frames);
@@ -106,15 +111,15 @@ for cap_idx = 1:num_caps
     row_upper = row_lower+asic_height - 1;
     row_lower = row_lower + y_margin;
     row_upper = row_upper - y_margin;
-    
+
     for col_idx=1:asic_x_count
       col_lower = (col_idx-1)*asic_width+1;
       col_upper = col_lower+asic_width - 1;
       col_lower = col_lower + x_margin;
       col_upper = col_upper - x_margin;
-      
+
       asic_idx = asic_idx + 1;
-      
+
       curr_asic_pix = curr_frame(row_lower:row_upper, col_lower:col_upper);
       flat_pix = reshape(calc_flat_asic(curr_asic_pix, 0.001),1, []);
       flat_pix = flat_pix(find(isfinite(flat_pix)));
