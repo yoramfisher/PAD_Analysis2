@@ -836,7 +836,10 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
 
     for fIdex in range( fore.numImages):
         (mdF,dataF) = fore.getFrame()
-        foreStack[mdF.frameNum-1,(mdF.capNum-1)%8,:,:] += np.resize(dataF,[512,512])
+        # 12/27/23 oh oh mdb.capNum appears to be incorrect!
+        cnum = fIdex % 8
+
+        foreStack[mdF.frameNum-1,cnum,:,:] += np.resize(dataF,[512,512])
 
     #standDev = np.zeros((8,512,512),dtype=np.double)
     DiffStack = foreStack-backStack
@@ -1132,8 +1135,10 @@ def calcBackgroundStats(dobj, data=None, runnum = 0):
 
             frameNum = (runBase-1  + fIdex) // ncaps  # not a typo "//" is integer division 
             dataArray = np.resize(dataF,[512,512])
-            dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
-            ave[ (mdF.capNum-1) % ncaps,:,:] += dataArray
+             # 12/27/23 oh oh mdb.capNum appears to be incorrect!
+            cnum = fIdex % 8
+            dobj.foreStack[frameNum,cnum,:,:] = dataArray
+            ave[ cnum,:,:] += dataArray
             imageCount += 1
 
         if raf:
@@ -1225,7 +1230,10 @@ def calcMeanVersusTime(dobj, data=None, runnum=0):
 
         frameNum = fIdex // ncaps  # not a typo "//" is integer division 
         dataArray = np.resize(dataF,[512,512])
-        dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
+        # 12/27/23 oh oh mdb.capNum appears to be incorrect!
+        cnum = fIdex % 8
+
+        dobj.foreStack[frameNum,cnum,:,:] = dataArray
 
     #  [ Frame, Cap, Y , X ] 
     
@@ -1272,7 +1280,9 @@ def calcLinearity(dobj, data=None, runnum = 0):
 
         frameNum = fIdex // ncaps  # not a typo "//" is integer division 
         dataArray = np.resize(dataF,[512,512])
-        dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
+        # 12/27/23 oh oh mdb.capNum appears to be incorrect!
+        cnum = fIdex % 8
+        dobj.foreStack[frameNum,cnum,:,:] = dataArray
 
 
     # optionaly  compute the average of just the first run, and use that as the background
@@ -1334,8 +1344,11 @@ def calcEachCapLineout(dobj,  data=None, runnum = 0):
             dataF = dataF - dataB #  Put F-B in F as a kludge.
 
         frameNum = fIdex // ncaps  # not a typo "//" is integer division 
+        # 12/27/23 oh oh mdb.capNum appears to be incorrect!
+        cnum = fIdex % 8
+
         dataArray = np.resize(dataF,[512,512])
-        dobj.foreStack[frameNum,(mdF.capNum-1) % ncaps,:,:] = dataArray
+        dobj.foreStack[frameNum,cnum,:,:] = dataArray
 
     #  [ Frame, Cap, Y , X ] 
     
