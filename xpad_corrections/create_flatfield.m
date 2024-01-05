@@ -15,21 +15,11 @@ x_margin = 3;
 asic_x_count = image_width/asic_width;
 asic_y_count = image_height/asic_height;
 
-##-=-= NOTE Dummy filenames that point to simulated data
-dark_filename = 'xpad_dark.raw'; # The image of dark current
-bright_filename = 'xpad_bright.raw'; # The flat-field image
+asic_count = asic_x_count * asic_y_count;
 
-##-=-= NOTE These are for images taken in forward order
-dark_filename = 'dark_combined.raw';
-bright_filename = 'bright_combined.raw';
-
-##-=-= XXX These are for images taken in backwards order
-dark_filename = 'reverse_dark.raw';
-bright_filename = 'reverse_bright.raw';
-
-
-dark_filename = "D:\\github\\run-0KV_1ms_100ns_100ims_ff_0\\frames\\0KV_1ms_100ns_100ims_ff_0_00000001.raw"
-bright_filename = "D:\\github\\run-50KV_1ms_100ns_100ims_ff_0\\frames\\50KV_1ms_100ns_100ims_ff_0_00000001.raw";
+## Set the filenames
+dark_filename = 'smk012/run-0KV_1ms_100ns_100ims_ff_0/frames/0KV_1ms_100ns_100ims_ff_0_00000001.raw';
+bright_filename = 'smk012/run-50KV_1ms_100ns_100ims_ff_0/frames/50KV_1ms_100ns_100ims_ff_0_00000001.raw';
 
 
 [dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, offset, gap, image_width, image_height);
@@ -76,8 +66,8 @@ disp('Completed background subtraction')
 
 ## We now need to NaN out the bad pixels.  These are contained in two PGM files
 ## Change the filenames here to suit.
-bad_dark_pixels = imread("dark_pixels.pgm");
-bad_hot_pixels = imread("hot_pixels.pgm");
+bad_dark_pixels = imread("smk012/dark_pixels.pgm");
+bad_hot_pixels = imread("smk012/hot_pixels.pgm");
 disp('Loaded bad pixel maps')
 
 ## -=-= XXX Makes no accounting for overflow of the sum, so the masks should only have values of 1
@@ -98,8 +88,8 @@ endfor
 ## Now compute the flatfield corrections
 flat_raster = zeros(image_height, image_width, num_caps);
 
-pix_std = zeros(16, 8);
-
+pix_std = zeros(asic_count, num_caps);
+pix_mean = zeros(asic_count, num_caps);         # -=-= TODO Make generic
 for cap_idx = 1:num_caps
   curr_frame = bg_sub_image(:,:,cap_idx);
   # Second parameter below is the threshold of gain deemed too low.
@@ -125,8 +115,10 @@ for cap_idx = 1:num_caps
       flat_pix = flat_pix(find(isfinite(flat_pix)));
       if isempty(flat_pix)
         pix_std(asic_idx, cap_idx) = -1;
+        pix_mean(asic_idx, cap_idx) = -1;          # This should be an invalid value
       else
-        pix_std(asic_idx, cap_idx) = std(1./flat_pix);
+        pix_std(asic_idx, cap_idx) = std(10*log10(flat_pix));
+        pix_mean(asic_idx, cap_idx) = mean(flat_pix);
       endif
     endfor
   endfor
@@ -142,14 +134,17 @@ endfor
 
 figure(1)
 subplot(1,1,1)
-plot(1:num_caps, pix_std(7,:), '-b*;ASIC 7;', 1:num_caps, pix_std(8,:), '-r^;ASIC8;')
+plot(1:num_caps, pix_std(3,:), '-b*;ASIC 2;', 1:num_caps, pix_std(4,:), '-r^;ASIC3;')
 title("ASIC Flatness")
 xlabel("Cap Number")
-ylabel("Std Dev of Flatfield Gain (normalized to 1)")
+ylabel("Std Dev of Flatfield Gain (dB)")
 print asic_flatness.png
 
 printf("ASIC Flatness\n")
-disp([pix_std(7:8,:) mean(pix_std(7:8,:),2)])
+disp([pix_std(3:4,:) mean(pix_std(3:4,:),2)])
+
+h = bar(pix_mean(:,2)/pix_mean(3,2))
+set(h, "basevalue", 1)
 
 fclose(ff_file);
 
