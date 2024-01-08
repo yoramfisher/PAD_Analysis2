@@ -79,6 +79,9 @@ if num_skip_frames > 0
   num_frames = num_frames-num_skip_frames;
 endif
 
+#-=-= FIXME                                # Convert to double for later work
+#raw_dark = double(raw_dark);
+
 disp("Skipped bad dark frames.")
 
 ## Then average over each cap
@@ -128,6 +131,9 @@ if num_skip_frames > 0
 endif
 disp("Skipped bad bright frames.")
 
+## Convert to double
+#-=-= FIXME raw_bright = double(raw_bright);
+
                                 # Background subtract
 for frame_idx = 1:num_frames
   dark_frame_idx = mod(frame_idx, num_caps);
@@ -139,8 +145,8 @@ for frame_idx = 1:num_frames
 
   raw_bright(:,:,frame_idx) = raw_bright(:,:,frame_idx) - curr_dark;
   if mod(frame_idx, num_caps) < 1
-    disp("Background subtracted frame:")
-    disp(frame_idx)
+    #disp("Background subtracted frame:")
+    #disp(frame_idx)
   endif
 endfor
 

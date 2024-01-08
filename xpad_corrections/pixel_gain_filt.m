@@ -13,9 +13,11 @@ function [mod_img, pix_thresh_prop] = pixel_gain_filt(base_img, thresh)
   sort_line = sort(curr_line);
   
   gain_mean = mean(sort_line);
+  gain_median = median(sort_line);
+  gain_std = std(sort_line);
+  thresh_val = gain_median - thresh*gain_std;
 
-  thresh_val = thresh * gain_mean;
-
+  size(find(mod_img <= thresh_val));
   pix_thresh_prop = max(size(find(mod_img <= thresh_val)))/max(size(curr_line));
   mod_img(find(mod_img <= thresh_val)) = NaN;
   

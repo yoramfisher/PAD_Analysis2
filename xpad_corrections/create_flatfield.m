@@ -1,28 +1,70 @@
 clear
 
-num_caps = 8;
-image_width = 512;
-image_height = 512;
-asic_width = 128;
-asic_height = 128;
-offset = 256;
-gap = 1024;
-num_skip_image = 0;             # The number of images at the start to skip
-num_skip_frames = num_caps * num_skip_image; # Total frames to skip
-y_margin = 3;
-x_margin = 3;
+cfg_filename = 'flatfield_map.ini';
+cfg_file = fopen(cfg_filename);
+[cfg_list, file_status] = get_config_line(cfg_file);
+fclose(cfg_file);
+
+for cfg_idx = 1:size(cfg_list)(1)
+  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1})
+  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1})
+
+  printf('"%s"', curr_name)
+  if strcmp(curr_name, "asic_width")
+    asic_width = str2double(curr_val);
+  elseif strcmp(curr_name, "asic_height")
+    asic_height = str2double(curr_val);
+  elseif strcmp(curr_name, "img_width")
+    image_width = str2double(curr_val);
+  elseif strcmp(curr_name, "img_height")
+    image_height = str2double(curr_val);
+  elseif strcmp(curr_name, "num_caps")
+    num_caps = str2double(curr_val);
+  elseif strcmp(curr_name, "file_offset")
+    offset = str2double(curr_val);
+  elseif strcmp(curr_name, "file_gap")
+    gap = str2double(curr_val);
+  elseif strcmp(curr_name, "num_skip_images")
+    num_skip_images = str2double(curr_val);
+  elseif strcmp(curr_name, "gain_threshold")
+    gain_thresh = str2double(curr_val);
+  elseif strcmp(curr_name, "dark_slope_thresh")
+    bad_thresh = str2num(curr_val);
+  elseif strcmp(curr_name, "x_margin")
+    x_margin = str2double(curr_val);
+  elseif strcmp(curr_name, "y_margin")
+    y_margin = str2double(curr_val);
+  elseif strcmp(curr_name, "dark_image_filename")
+    dark_image_filename = curr_val;
+  elseif strcmp(curr_name, "bright_image_filename")
+    bright_image_filename = curr_val;
+  elseif strcmp(curr_name, "dark_mask")
+    dark_mask_filename = curr_val;
+  elseif strcmp(curr_name, "hot_mask")
+    hot_mask_filename = curr_val;
+  endif
+endfor
+
+
+
+#num_caps = 8;
+#image_width = 512;
+#image_height = 512;
+#asic_width = 128;
+#asic_height = 128;
+#offset = 256;
+#gap = 1024;
+#num_skip_image = 0;             # The number of images at the start to skip
+num_skip_frames = num_caps * num_skip_images; # Total frames to skip
+#y_margin = 3;
+#x_margin = 3;
 
 asic_x_count = image_width/asic_width;
 asic_y_count = image_height/asic_height;
 
 asic_count = asic_x_count * asic_y_count;
 
-## Set the filenames
-dark_filename = 'smk012/run-0KV_1ms_100ns_100ims_ff_0/frames/0KV_1ms_100ns_100ims_ff_0_00000001.raw';
-bright_filename = 'smk012/run-50KV_1ms_100ns_100ims_ff_0/frames/50KV_1ms_100ns_100ims_ff_0_00000001.raw';
-
-
-[dark_raw, num_dark_frames] = read_xpad_image(dark_filename, 16, offset, gap, image_width, image_height);
+[dark_raw, num_dark_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded dark image')
 printf("Dark frames count: %i\n", num_dark_frames);
 
@@ -41,7 +83,7 @@ clear dark_raw
 disp('Averaged dark image')
 
 ## Now repeat for the bright image
-[bright_raw, num_bright_frames] = read_xpad_image(bright_filename, 16, offset, gap, image_width, image_height);
+[bright_raw, num_bright_frames] = read_xpad_image(bright_image_filename, 16, offset, gap, image_width, image_height);
 disp('Loaded bright image')
 printf("Bright frames count: %i\n", num_bright_frames);
 
@@ -66,8 +108,8 @@ disp('Completed background subtraction')
 
 ## We now need to NaN out the bad pixels.  These are contained in two PGM files
 ## Change the filenames here to suit.
-bad_dark_pixels = imread("smk012/dark_pixels.pgm");
-bad_hot_pixels = imread("smk012/hot_pixels.pgm");
+bad_dark_pixels = imread(dark_mask_filename);
+bad_hot_pixels = imread(hot_mask_filename);
 disp('Loaded bad pixel maps')
 
 ## -=-= XXX Makes no accounting for overflow of the sum, so the masks should only have values of 1
@@ -93,7 +135,7 @@ pix_mean = zeros(asic_count, num_caps);         # -=-= TODO Make generic
 for cap_idx = 1:num_caps
   curr_frame = bg_sub_image(:,:,cap_idx);
   # Second parameter below is the threshold of gain deemed too low.
-  flat_raster(:,:,cap_idx) = calc_flat_asic(curr_frame, 0.001);
+  flat_raster(:,:,cap_idx) = calc_flat_asic(curr_frame, gain_thresh);
 
   asic_idx = 0;
   for row_idx=1:asic_y_count
@@ -111,7 +153,7 @@ for cap_idx = 1:num_caps
       asic_idx = asic_idx + 1;
 
       curr_asic_pix = curr_frame(row_lower:row_upper, col_lower:col_upper);
-      flat_pix = reshape(calc_flat_asic(curr_asic_pix, 0.001),1, []);
+      flat_pix = reshape(calc_flat_asic(curr_asic_pix, gain_thresh),1, []);
       flat_pix = flat_pix(find(isfinite(flat_pix)));
       if isempty(flat_pix)
         pix_std(asic_idx, cap_idx) = -1;
@@ -134,14 +176,14 @@ endfor
 
 figure(1)
 subplot(1,1,1)
-plot(1:num_caps, pix_std(3,:), '-b*;ASIC 2;', 1:num_caps, pix_std(4,:), '-r^;ASIC3;')
+plot(1:num_caps, pix_std(7,:), '-b*;ASIC 2;', 1:num_caps, pix_std(8,:), '-r^;ASIC3;')
 title("ASIC Flatness")
 xlabel("Cap Number")
 ylabel("Std Dev of Flatfield Gain (dB)")
 print asic_flatness.png
 
 printf("ASIC Flatness\n")
-disp([pix_std(3:4,:) mean(pix_std(3:4,:),2)])
+disp([pix_std(7:8,:) mean(pix_std(7:8,:),2)])
 
 h = bar(pix_mean(:,2)/pix_mean(3,2))
 set(h, "basevalue", 1)
