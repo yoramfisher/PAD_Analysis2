@@ -830,7 +830,9 @@ def plotROI(cap, zSX, zSY, nTap, W, H):
     for fIdex in range( back.numImages ):
         (mdB,dataB) = back.getFrame()
         #  return frameParms, lengthParms, frameMeta, capNum, data, frameNum, integTime, interTime
-        backStack[ mdB.frameNum-1,(mdB.capNum-1)%8,:,:] += np.resize(dataB,[512,512])
+         # 12/27/23 oh oh mdb.capNum appears to be incorrect!
+        cnum = fIdex % 8
+        backStack[ mdB.frameNum-1,cnum,:,:] += np.resize(dataB,[512,512])
 
     avgBack = backStack/( back.numImages/8.0)
 
