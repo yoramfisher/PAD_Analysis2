@@ -5,10 +5,24 @@ cfg_file = fopen(cfg_filename);
 [cfg_list, file_status] = get_config_line(cfg_file);
 fclose(cfg_file);
 
-for cfg_idx = 1:size(cfg_list)(1)
-  curr_name = cfg_list{cfg_idx, 1}{1,1};
-  curr_val = cfg_list{cfg_idx, 2}{1,1};
+asic_width = 0;
+asic_height = 0;
+img_width = 0;
+img_height = 0;
+num_caps = 0
+num_skip_images = -1
+bad_asics = 1
+hot_iqr_thresh = []
+dark_iqr_thresh = []
+prelim_bad_filename = ""
+dark_image_filename = ""
+bright_image_filename = ""
 
+for cfg_idx = 1:size(cfg_list)(1)
+  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1})
+  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1})
+
+  printf('"%s"', curr_name)
   if strcmp(curr_name, "asic_width")
     asic_width = str2double(curr_val);
   elseif strcmp(curr_name, "asic_height")
@@ -17,7 +31,7 @@ for cfg_idx = 1:size(cfg_list)(1)
     img_width = str2double(curr_val);
   elseif strcmp(curr_name, "img_height")
     img_height = str2double(curr_val);
-  elseif strcmp(curr_name, "num_caps"):
+  elseif strcmp(curr_name, "num_caps")
     num_caps = str2double(curr_val);
   elseif strcmp(curr_name, "file_offset")
     offset = str2double(curr_val);
@@ -32,19 +46,21 @@ for cfg_idx = 1:size(cfg_list)(1)
   elseif strcmp(curr_name, "dark_iqr_thresh")
     dark_iqr_thresh = str2num(curr_val);
   elseif strcmp(curr_name, "prelim_bad_filename")
-    prelim_bad_filename = curr_val;
+    prelim_bad_filename = curr_val
   elseif strcmp(curr_name, "dark_image_filename")
-    dark_image_file = curr_val;
+    dark_image_filename = curr_val
   elseif strcmp(curr_name, "bright_image_filename")
-    bright_image_filename = curr_val;
+    bright_image_filename = curr_val
   endif
 endfor
 
+
 bad_thresh = [1.5 1.806 1.955 2.2687 2.3881];
-num_skip_frames = num_skip_images * num_skip_caps;
+num_skip_frames = num_skip_images * num_caps;
 
 ## Load in the preliminary bad pixels
-prelim_bad_pixel_file = fopen(prelim_bad_pixel_filename, "rb");
+prelim_bad_filename
+prelim_bad_pixel_file = fopen(prelim_bad_filename, "rb");
 prelim_bad_mask = fread(prelim_bad_pixel_file, [img_height, img_width], 'uint16', 0, 'b')';
 fclose(prelim_bad_pixel_file);
 ## Note where preliminary bad pixels are set

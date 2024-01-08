@@ -1,32 +1,65 @@
 clear
 
-asic_width = 128;
-asic_height = 128;
-img_width = 512;
-img_height = 512;
-num_caps = 8;                   # Camera Parameters
-num_skip_images = 0;             # The number of images at the start to skip
+cfg_filename = 'bad_pixel_mask.ini';
+cfg_file = fopen(cfg_filename);
+[cfg_list, file_status] = get_config_line(cfg_file);
+fclose(cfg_file);
+
+for cfg_idx = 1:size(cfg_list)(1)
+  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1})
+  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1})
+
+  printf('"%s"', curr_name)
+  if strcmp(curr_name, "asic_width")
+    asic_width = str2double(curr_val);
+  elseif strcmp(curr_name, "asic_height")
+    asic_height = str2double(curr_val);
+  elseif strcmp(curr_name, "img_width")
+    img_width = str2double(curr_val);
+  elseif strcmp(curr_name, "img_height")
+    img_height = str2double(curr_val);
+  elseif strcmp(curr_name, "num_caps")
+    num_caps = str2double(curr_val);
+  elseif strcmp(curr_name, "file_offset")
+    offset = str2double(curr_val);
+  elseif strcmp(curr_name, "file_gap")
+    gap = str2double(curr_val);
+  elseif strcmp(curr_name, "num_skip_images")
+    num_skip_images = str2double(curr_val);
+  elseif strcmp(curr_name, "bad_asics")
+    bad_asics = str2num(curr_val);
+  elseif strcmp(curr_name, "dark_slope_thresh")
+    bad_thresh = str2num(curr_val);
+  elseif strcmp(curr_name, "prelim_bad_filename")
+    prelim_bad_filename = curr_val
+  elseif strcmp(curr_name, "dark_image_filename")
+    dark_image_filename = curr_val
+  elseif strcmp(curr_name, "bright_image_filename")
+    bright_image_filename = curr_val
+  endif
+endfor
+
+
+#asic_width = 128;
+#asic_height = 128;
+#img_width = 512;
+#img_height = 512;
+#num_caps = 8;                   # Camera Parameters
+#num_skip_images = 0;             # The number of images at the start to skip
 num_skip_frames = num_caps * num_skip_images; # Total frames to skip
-bad_asics = [1, 1, 0, 0; 1, 1, 1, 1; 1, 1, 1, 1; 1, 1, 1, 1]; # Set to 1 if the whole ASIC is bad
-offset = 256;                   # Header size
-gap=1024;                       # Gap between rasters
+#bad_asics = [1, 1, 0, 0; 1, 1, 1, 1; 1, 1, 1, 1; 1, 1, 1, 1]; # Set to 1 if the whole ASIC is bad
+#offset = 256;                   # Header size
+#gap=1024;                       # Gap between rasters
 
-bad_thresh = [0.9 0.8 0.75 0.5];
+num_skip_frames = num_caps * num_skip_images;
 
-##-=-= NOTE A good file
-#prelim_bad_pixel_filename = 'blank_bad.raw';
+prelim_bad_pixel_file = fopen(prelim_bad_filename, "rb");
 
-#prelim_bad_pixel_file = fopen(prelim_bad_pixel_filename, "rb");
-
-#prelim_bad_mask = fread(prelim_bad_pixel_file, [img_height, img_width], 'uint16', 0, 'b')';
+prelim_bad_mask = fread(prelim_bad_pixel_file, [img_height, img_width], 'uint16', 0, 'b')';
 
 ## Note where preliminary bad pixels are set
-#prelim_bad_mask = prelim_bad_mask != 0;
-#fclose(prelim_bad_pixel_file);
-
-prelim_bad_mask = zeros(512,512);
-prelim_bad_mask(129:256, 128*3+1) = 1;
 prelim_bad_mask = prelim_bad_mask != 0;
+fclose(prelim_bad_pixel_file);
 
 dark_image = zeros(img_height, img_width, num_caps);
 bright_image = zeros(img_height, img_width, num_caps);
@@ -34,7 +67,6 @@ bright_image = zeros(img_height, img_width, num_caps);
 # Load in the the dark image and threshold
 ## Good filename
 %dark_image_filename = 'dark_combined.raw';
-dark_image_filename = "D:\\github\\run-50KV_1ms_100ns_100ims_ff_0\\frames\\50KV_1ms_100ns_100ims_ff_0_00000001.raw"
 
 ## Load in the whole stack
 [raw_dark, num_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, 512, 512);
@@ -82,9 +114,6 @@ clear raw_dark
 
 ## Load in the the dark image and threshold
 ## Filename of a test pattern
-bright_image_filename = 'basic_pattern.raw';
-## Good filename
-bright_image_filename = 'bright_combined.raw';
 
 ## Load in the whole stack
 [raw_bright, num_frames] = read_xpad_image(bright_image_filename, 16, offset, gap, 512, 512);
