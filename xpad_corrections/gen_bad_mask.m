@@ -19,10 +19,9 @@ dark_image_filename = ""
 bright_image_filename = ""
 
 for cfg_idx = 1:size(cfg_list)(1)
-  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1})
-  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1})
+  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1});
+  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1});
 
-  printf('"%s"', curr_name)
   if strcmp(curr_name, "asic_width")
     asic_width = str2double(curr_val);
   elseif strcmp(curr_name, "asic_height")
@@ -46,20 +45,20 @@ for cfg_idx = 1:size(cfg_list)(1)
   elseif strcmp(curr_name, "dark_iqr_thresh")
     dark_iqr_thresh = str2num(curr_val);
   elseif strcmp(curr_name, "prelim_bad_filename")
-    prelim_bad_filename = curr_val
+    prelim_bad_filename = curr_val;
   elseif strcmp(curr_name, "dark_image_filename")
-    dark_image_filename = curr_val
+    dark_image_filename = curr_val;
   elseif strcmp(curr_name, "bright_image_filename")
-    bright_image_filename = curr_val
+    bright_image_filename = curr_val;
+  elseif strcmp(curr_name, "bpp")
+    sensor_bpp = str2double(curr_val);
   endif
 endfor
 
 
-bad_thresh = [1.5 1.806 1.955 2.2687 2.3881];
 num_skip_frames = num_skip_images * num_caps;
 
 ## Load in the preliminary bad pixels
-prelim_bad_filename
 prelim_bad_pixel_file = fopen(prelim_bad_filename, "rb");
 prelim_bad_mask = fread(prelim_bad_pixel_file, [img_height, img_width], 'uint16', 0, 'b')';
 fclose(prelim_bad_pixel_file);
@@ -71,7 +70,7 @@ bright_image = zeros(img_height, img_width, num_caps);
 
 # Load in the the dark image and threshold
 ## Load in the whole stack
-[raw_dark, num_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, 512, 512);
+[raw_dark, num_frames] = read_xpad_image(dark_image_filename, sensor_bpp, offset, gap, 512, 512);
 
 ## Skip the first NUM_SKIP_IMAGE background images
 ## Remember there are NUM_CAPS frames per image
@@ -114,7 +113,7 @@ endfor
 ## Load in the the dark image and threshold
 
 ## Load in the whole stack
-[raw_bright, num_frames] = read_xpad_image(bright_image_filename, 16, offset, gap, 512, 512);
+[raw_bright, num_frames] = read_xpad_image(bright_image_filename, sensor_bpp, offset, gap, 512, 512);
 
 ## Skip the first NUM_SKIP_IMAGE flatfiled images
 ## Remember there are NUM_CAPS frames per image

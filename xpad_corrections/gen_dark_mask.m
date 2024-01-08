@@ -6,10 +6,9 @@ cfg_file = fopen(cfg_filename);
 fclose(cfg_file);
 
 for cfg_idx = 1:size(cfg_list)(1)
-  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1})
-  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1})
+  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1});
+  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1});
 
-  printf('"%s"', curr_name)
   if strcmp(curr_name, "asic_width")
     asic_width = str2double(curr_val);
   elseif strcmp(curr_name, "asic_height")
@@ -31,11 +30,13 @@ for cfg_idx = 1:size(cfg_list)(1)
   elseif strcmp(curr_name, "dark_slope_thresh")
     bad_thresh = str2num(curr_val);
   elseif strcmp(curr_name, "prelim_bad_filename")
-    prelim_bad_filename = curr_val
+    prelim_bad_filename = curr_val;
   elseif strcmp(curr_name, "dark_image_filename")
-    dark_image_filename = curr_val
+    dark_image_filename = curr_val;
   elseif strcmp(curr_name, "bright_image_filename")
-    bright_image_filename = curr_val
+    bright_image_filename = curr_val;
+  elseif strcmp(curr_name, "bpp")
+    sensor_bpp = str2double(curr_val);
   endif
 endfor
 
@@ -69,7 +70,7 @@ bright_image = zeros(img_height, img_width, num_caps);
 %dark_image_filename = 'dark_combined.raw';
 
 ## Load in the whole stack
-[raw_dark, num_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, 512, 512);
+[raw_dark, num_frames] = read_xpad_image(dark_image_filename, sensor_bpp, offset, gap, 512, 512);
 disp("Loaded dark frames.")
 
 ## Skip the first NUM_SKIP_IMAGE background images
@@ -119,7 +120,7 @@ clear raw_dark
 ## Filename of a test pattern
 
 ## Load in the whole stack
-[raw_bright, num_frames] = read_xpad_image(bright_image_filename, 16, offset, gap, 512, 512);
+[raw_bright, num_frames] = read_xpad_image(bright_image_filename, sensor_bpp, offset, gap, 512, 512);
 disp("Loaded bright frames.")
 
 

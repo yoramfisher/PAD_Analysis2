@@ -6,10 +6,9 @@ cfg_file = fopen(cfg_filename);
 fclose(cfg_file);
 
 for cfg_idx = 1:size(cfg_list)(1)
-  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1})
-  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1})
+  curr_name = strtrim(cfg_list{cfg_idx, 1}{1,1});
+  curr_val = strtrim(cfg_list{cfg_idx, 2}{1,1});
 
-  printf('"%s"', curr_name)
   if strcmp(curr_name, "asic_width")
     asic_width = str2double(curr_val);
   elseif strcmp(curr_name, "asic_height")
@@ -42,6 +41,8 @@ for cfg_idx = 1:size(cfg_list)(1)
     dark_mask_filename = curr_val;
   elseif strcmp(curr_name, "hot_mask")
     hot_mask_filename = curr_val;
+  elseif strcmp(curr_name, "bpp")
+    sensor_bpp = str2double(curr_val);
   endif
 endfor
 
@@ -64,7 +65,7 @@ asic_y_count = image_height/asic_height;
 
 asic_count = asic_x_count * asic_y_count;
 
-[dark_raw, num_dark_frames] = read_xpad_image(dark_image_filename, 16, offset, gap, image_width, image_height);
+[dark_raw, num_dark_frames] = read_xpad_image(dark_image_filename, sensor_bpp, offset, gap, image_width, image_height);
 disp('Loaded dark image')
 printf("Dark frames count: %i\n", num_dark_frames);
 
@@ -83,7 +84,7 @@ clear dark_raw
 disp('Averaged dark image')
 
 ## Now repeat for the bright image
-[bright_raw, num_bright_frames] = read_xpad_image(bright_image_filename, 16, offset, gap, image_width, image_height);
+[bright_raw, num_bright_frames] = read_xpad_image(bright_image_filename, sensor_bpp, offset, gap, image_width, image_height);
 disp('Loaded bright image')
 printf("Bright frames count: %i\n", num_bright_frames);
 
