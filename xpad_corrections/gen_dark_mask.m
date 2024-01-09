@@ -52,15 +52,13 @@ num_skip_frames = num_caps * num_skip_images; # Total frames to skip
 #offset = 256;                   # Header size
 #gap=1024;                       # Gap between rasters
 
+
 num_skip_frames = num_caps * num_skip_images;
 
-prelim_bad_pixel_file = fopen(prelim_bad_filename, "rb");
-
-prelim_bad_mask = fread(prelim_bad_pixel_file, [img_height, img_width], 'uint16', 0, 'b')';
-
+## Load in the mask of bad pixels
+prelim_bad_mask = imread(prelim_bad_filename);
 ## Note where preliminary bad pixels are set
 prelim_bad_mask = prelim_bad_mask != 0;
-fclose(prelim_bad_pixel_file);
 
 dark_image = zeros(img_height, img_width, num_caps);
 bright_image = zeros(img_height, img_width, num_caps);
