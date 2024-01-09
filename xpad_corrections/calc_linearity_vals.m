@@ -12,7 +12,7 @@ function [sigmasq, mu] = calc_linearity_vals(img_stack)
       return
     else
       sigma_vals(frame_idx) = std(curr_pixels)^2;
-      mu_vals(frame_idx) = mean(curr_pixels)
+      mu_vals(frame_idx) = mean(curr_pixels);
     endif
   endfor
 
