@@ -12,8 +12,8 @@ img_height = 0;
 num_caps = 0
 num_skip_images = -1
 bad_asics = 1
-hot_iqr_thresh = []
-dark_iqr_thresh = []
+hot_z_thresh = []
+dark_z_thresh = []
 prelim_bad_filename = ""
 dark_image_filename = ""
 bright_image_filename = ""
@@ -41,9 +41,9 @@ for cfg_idx = 1:size(cfg_list)(1)
   elseif strcmp(curr_name, "bad_asics")
     bad_asics = str2num(curr_val);
   elseif strcmp(curr_name, "hot_iqr_thresh")
-    hot_iqr_thresh = str2num(curr_val);
+    hot_z_thresh = str2num(curr_val); # Actually a z-score later converted
   elseif strcmp(curr_name, "dark_iqr_thresh")
-    dark_iqr_thresh = str2num(curr_val);
+    dark_z_thresh = str2num(curr_val); # Actually a z-score later converted
   elseif strcmp(curr_name, "prelim_bad_filename")
     prelim_bad_filename = curr_val;
   elseif strcmp(curr_name, "dark_image_filename")
@@ -57,6 +57,10 @@ endfor
 
 
 num_skip_frames = num_skip_images * num_caps;
+
+## Compute the actual IQR-thresholds from the z-score thresholds
+hot_iqr_thresh = (hot_z_thresh-0.67)/1.34;
+dark_iqr_thresh = (dark_z_thresh-0.67)/1.34
 
 ## Load in the preliminary bad pixels
 prelim_bad_mask = imread(prelim_bad_filename);
@@ -102,7 +106,7 @@ for curr_thresh=hot_iqr_thresh
   hot_filt = [hot_filt pix_thresh];
 
   hot_total = sum(hot_img, 3);
-  out_name = sprintf("hot_iqr_%.4f.pgm", curr_thresh);
+  out_name = sprintf("hot_iqr_%.4f.pgm", 1.34*curr_thresh+0.67); #Switch to Z
   pgm_write(hot_total, out_name);
 endfor
 
@@ -143,7 +147,7 @@ for curr_thresh=dark_iqr_thresh
   cold_filt = [cold_filt curr_filt];
 
   cold_total = sum(cold_img, 3);
-  out_name = sprintf("dark_iqr_%.4f.pgm", curr_thresh);
+  out_name = sprintf("dark_iqr_%.4f.pgm", 1.34*curr_thresh+0.67);
   pgm_write(cold_total, out_name);
 endfor
 
