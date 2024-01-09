@@ -141,6 +141,10 @@ cold_filt = [];
 for curr_thresh=dark_iqr_thresh
   [cold_img, curr_filt] = thresh_image(bright_image, 1, curr_thresh, asic_width, asic_height);
   cold_filt = [cold_filt curr_filt];
+
+  cold_total = sum(cold_img, 3);
+  out_name = sprintf("dark_iqr_%.4f.pgm", curr_thresh);
+  pgm_write(cold_total, out_name);
 endfor
 
 ## With the bad pixels calculated, we can collapse them to single layers for writing out
