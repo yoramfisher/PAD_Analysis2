@@ -127,37 +127,60 @@ endfor
 
 full_noise = mean(raw_cap_noise,2);
 
+
+csv_file = fopen("read_noise.csv", "w");
+
 printf("Total Noise:\n")
 ## Fancy Printing w00t!eleventy!!1!
 printf("        Cap\n");
 printf("ASIC    ");
+fprintf(csv_file, "Total Noise:\n");
+fprintf(csv_file, ",Cap\n");
+fprintf(csv_file, "ASIC");
 for cap_idx=1:num_caps
   printf("%-8i", cap_idx);
+  fprintf(csv_file, ",%i", cap_idx);
 endfor
 printf("\n")
+fprintf(csv_file, "\n")
+
 for asic_idx=asics_in_use
   printf("%4i    ", asic_idx)
+  fprintf(csv_file, "%i", asic_idx)
   for cap_idx=1:num_caps
     printf("%-6.3f  ", raw_cap_noise(asic_idx, cap_idx))
+    fprintf(csv_file, ",%6.3f",raw_cap_noise(asic_idx, cap_idx));
   endfor
   printf("\n")
+  fprintf(csv_file, "\n")
 endfor
 
 printf("\n")
+fprintf(csv_file, "\n")
 
 printf("Per-Frame Noise:\n")
 printf("        Cap\n");
 printf("ASIC    ");
+fprintf(csv_file, "Per-Frame Noise:\n");
+fprintf(csv_file, ",Cap\n");
+fprintf(csv_file, "ASIC");
 for cap_idx=1:num_caps
   printf("%-8i", cap_idx);
+  fprintf(csv_file, ",%i", cap_idx);
 endfor
+
 printf("\n")
+fprintf(csv_file, "\n")
+
 for asic_idx=asics_in_use
   printf("%4i    ", asic_idx)
+  fprintf(csv_file, "%i", asic_idx)
   for cap_idx=1:num_caps
     printf("%-6.3f  ", separate_cap_noise(asic_idx, cap_idx))
+    fprintf(csv_file, ",%6.3f",separate_cap_noise(asic_idx, cap_idx));
   endfor
   printf("\n")
+  fprintf(csv_file, "\n")
 endfor
 
-
+fclose(csv_file);
