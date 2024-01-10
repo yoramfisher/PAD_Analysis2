@@ -122,6 +122,8 @@ for fg_idx=1:num_fg
   endfor
 endfor
 
+csv_file = fopen("linearity.csv", "w");
+
 for curr_asic=asics_in_use
   figure(1)
   subplot(1,1,1)
@@ -140,10 +142,16 @@ for curr_asic=asics_in_use
   ## Now print a nice table
   printf("ASIC %i\n", curr_asic)
   printf("%-16s%-16s\n", "Mean", "Variance")
+
+  fprintf(csv_file, "ASIC %i\n", curr_asic);
+  fprintf(csv_file, "Mean,Variance\n")
   
   for mu_idx=1:max(size(sort_mu))
     printf("%-+12.3e    %-+12.3e\n", sort_mu(mu_idx), sort_var(mu_idx));
+    fprintf(csv_file, "%12.3e,%12.3e\n", sort_mu(mu_idx), sort_var(mu_idx));
   endfor
   printf("\n")
+  fprintf(csv_file, "\n");
 endfor
 
+fclose(csv_file)
