@@ -96,8 +96,15 @@ endfor
 ## Now NaN out the bad asics
 dark_image = apply_bad_asic(bad_asics, asic_height, asic_width, dark_image);
 
+## Kludge for single caps
+if num_caps == 1
+  temp_image = zeros([size(dark_image) 2]);
+  temp_image(:,:,1) = dark_image;
+  temp_image(:,:,2) = dark_image;
+  dark_image = temp_image;
+endif
 
-
+size(dark_image)
 ## Threshold out the hot pixels
 ## The threshold is the third argument in thresh_image(), below.
 hot_filt = [];
@@ -138,6 +145,14 @@ endfor
 
 ## Now NaN out the bad asics
 bright_image = apply_bad_asic(bad_asics, asic_height, asic_width, bright_image);
+
+## Kludge for 1 cap
+if num_caps == 1
+  temp_image = zeros([size(bright_image) 2]);
+  temp_image(:,:,1) = bright_image;
+  temp_image(:,:,2) = bright_image;
+  bright_image = temp_image;
+endif
 
 ## Threshold out the hot pixels
 ## The threshold is the third argument in thresh_image(), below.

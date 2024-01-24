@@ -138,6 +138,10 @@ for frame_idx = 1:num_frames
   dark_frame_idx = mod(frame_idx, num_caps);
   if dark_frame_idx < 1
     dark_frame_idx = 8;
+    if num_caps == 1
+      dark_frame_idx = 1;
+    endif
+    
   endif
 
   curr_dark = dark_image(:,:,dark_frame_idx);
@@ -169,6 +173,14 @@ disp("Masked bad pixels.")
 
 ## Now NaN out the bad asics
 bright_image = apply_bad_asic(bad_asics, asic_height, asic_width, bright_image);
+
+if num_caps == 1
+  temp_image = zeros([size(bright_image) 2]);
+  temp_image(:,:,1) = bright_image;
+  temp_image(:,:,2) = bright_image;
+  bright_image = temp_image;
+endif
+
 
 ## Threshold out the hot pixels
 ## The threshold is the third argument in thresh_image(), below.
