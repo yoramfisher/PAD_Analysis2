@@ -154,14 +154,15 @@ for cap_idx = 1:num_caps
       asic_idx = asic_idx + 1;
 
       curr_asic_pix = curr_frame(row_lower:row_upper, col_lower:col_upper);
+      curr_flat_asic = flat_raster(row_lower:row_upper,col_lower:col_upper,cap_idx)
       flat_pix = reshape(calc_flat_asic(curr_asic_pix, gain_thresh),1, []);
       flat_pix = flat_pix(find(isfinite(flat_pix)));
       if isempty(flat_pix)
-        pix_std(asic_idx, cap_idx) = -1;
-        pix_mean(asic_idx, cap_idx) = -1;          # This should be an invalid value
+        pix_std(asic_idx, cap_idx) = NaN;
+        pix_mean(asic_idx, cap_idx) = NaN;          # This should be an invalid value
       else
         pix_std(asic_idx, cap_idx) = std(10*log10(flat_pix));
-        pix_mean(asic_idx, cap_idx) = mean(flat_pix);
+        pix_mean(asic_idx, cap_idx) = 10*log10(mean(curr_flat_asic));
       endif
     endfor
   endfor
@@ -175,19 +176,21 @@ for cap_idx = 1:num_caps
   fwrite(ff_file, curr_frame, "double", 0, "l");
 endfor
 
+fclose(ff_file)
+
 figure(1)
 subplot(1,1,1)
-plot(1:num_caps, pix_std(7,:), '-b*;ASIC 2;', 1:num_caps, pix_std(8,:), '-r^;ASIC3;')
+h = bar(pix_mean(:,1)-pix_mean(1,1))
+title("ASIC Gain Compared to ASIC 1")
+xlabel("ASIC Number")
+ylabel("Gain (dB)")
+print asic_gains.png
+
+figure(2)
+subplot(1,1,1)
+plot(1:num_caps, pix_std(:,1), '-b*')
 title("ASIC Flatness")
 xlabel("Cap Number")
 ylabel("Std Dev of Flatfield Gain (dB)")
 print asic_flatness.png
-
-printf("ASIC Flatness\n")
-disp([pix_std(7:8,:) mean(pix_std(7:8,:),2)])
-
-h = bar(pix_mean(:,2)/pix_mean(3,2))
-set(h, "basevalue", 1)
-
-fclose(ff_file);
 
