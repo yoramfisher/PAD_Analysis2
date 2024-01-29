@@ -121,11 +121,17 @@ print("Cold neighborhoods: {}".format(cold_neighborhoods));
 print("{} single pixels and {} no pixels.".format(len(singlePixelList),len(noPixelList)));
 single_pixel_filename = 'single_pix.csv';
 single_pixel_file = open(single_pixel_filename, 'w');
+full_pixel_list = []
 for curr_pixel in singlePixelList:
     single_pixel_file.write('{},{},{},{}\n'.format(curr_pixel.y, curr_pixel.x, curr_pixel.cap, curr_pixel.value));
+    full_pixel_list.append(curr_pixel.value)
     #if (curr_pixel.y < 128) and (curr_pixel.x < 128) and (curr_pixel.cap == 3):
         #single_pixel_file.write('{},{},{},{}\n'.format(curr_pixel.y, curr_pixel.x, curr_pixel.cap, curr_pixel.value));
 single_pixel_file.close();
+
+full_pixel_list.sort()
+num_pixels = len(full_pixel_list)
+print("Histogram IQR: {}:{}".format(full_pixel_list[int(num_pixels*0.25)], full_pixel_list[int(num_pixels*0.75)]))
 
 #uncomment below if you want to save no pixel list to file
 # no_pixel_filename = 'no_pix.csv';
