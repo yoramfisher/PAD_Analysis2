@@ -8,8 +8,6 @@ import os
 import matplotlib.pyplot as plt
 import struct
 
-# cwd = os.getcwd()
-# imageData = open("/Volumes/BMARTIN/rn2_00000001.raw","rb")
 
 def mmFrame(dataFile):
     headerBites = dataFile.read(16)
@@ -58,4 +56,20 @@ def mmFrame(dataFile):
 # Frame1 = ()
 
 if __name__ == "__main__":
-    pass
+
+    setname="mpad-linscan1"
+    runname="run_1"
+    runBase = 1
+    
+
+    foreFile = r"\\sydor-fp01\Sydor Instruments Shared Data\PRODUCTS\XRAY\MMPAD\MM_Airbox_SN013\mmpad_airbox_data" + \
+        fr"\set-{setname}\run-{runname}\frames\{runname}_{runBase:08d}.raw"
+
+    #foreFile = r"\\sydor-fp01\Sydor Instruments Shared Data\PRODUCTS\XRAY\MMPAD\MM_Airbox_SN013\mmpad_airbox_data" + \
+    #      r"\set-mpad-linscan1\run-run_1\frames\run_1_00000001.raw"
+    
+    
+
+    imageData = open(foreFile,"rb")
+    Frame1 = mmFrame(imageData)
+    Frame2 = mmFrame(imageData)
