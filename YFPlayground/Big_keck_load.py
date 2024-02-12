@@ -203,13 +203,16 @@ if __name__ == "__main__":
     #fore_filepath = r"C:\Sydor Technologies\50KV_0C_1ms_cap0_f_00000001.raw" # "C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
     #back_filepath = r"C:\Sydor Technologies\50KV_0C_1ms_cap0_b_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
 
-    fore_filepath = r"C:\Sydor Technologies\50KV_0C_1ms_cap0_f_00000001.raw" # "C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
-    back_filepath = r"C:\Sydor Technologies\50KV_0C_1ms_cap0_b_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
+    #fore_filepath = r"C:\Sydor Technologies\50KV_0C_1ms_cap0_f_00000001.raw" # "C:\Sydor Technologies\temptst_00000001.raw" # C:/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-21-32/frames/2023-06-23-16-21-32_00000001.raw"
+    #back_filepath = r"C:\Sydor Technologies\50KV_0C_1ms_cap0_b_00000001.raw" # "/mnt/raid/keckpad/set-yoram/run-2023-06-23-16-23-00/frames/2023-06-23-16-23-00_00000001.raw"
 
+    fore_filepath = r"C:\temp\lbs1-013_00000001.raw"
+    back_filepath = r"C:\temp\lbs1-013_00000001.raw"
+    
     Fore = KeckFrame(fore_filepath)
     Back = KeckFrame(back_filepath)
 
-    while True:
+    for n in range( Fore.numImages):
         (mdF, dataF) = Fore.getFrame()
         (mdB, dataB) = Back.getFrame()
 
@@ -226,3 +229,4 @@ if __name__ == "__main__":
 
     Fore.close()
     Back.close()
+    
