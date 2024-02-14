@@ -154,7 +154,9 @@ for cap_idx = 1:num_caps
       asic_idx = asic_idx + 1;
 
       curr_asic_pix = curr_frame(row_lower:row_upper, col_lower:col_upper);
-      curr_flat_asic = flat_raster(row_lower:row_upper,col_lower:col_upper,cap_idx)
+      curr_flat_asic = flat_raster(row_lower:row_upper,col_lower:col_upper,cap_idx);
+      curr_flat_asic = reshape(curr_flat_asic, 1, []);
+      curr_flat_asic = curr_flat_asic(find(isfinite(curr_flat_asic)));
       flat_pix = reshape(calc_flat_asic(curr_asic_pix, gain_thresh),1, []);
       flat_pix = flat_pix(find(isfinite(flat_pix)));
       if isempty(flat_pix)
@@ -162,7 +164,7 @@ for cap_idx = 1:num_caps
         pix_mean(asic_idx, cap_idx) = NaN;          # This should be an invalid value
       else
         pix_std(asic_idx, cap_idx) = std(10*log10(flat_pix));
-        pix_mean(asic_idx, cap_idx) = 10*log10(mean(curr_flat_asic));
+	pix_mean(asic_idx, cap_idx) = 10*log10(mean(curr_flat_asic));
       endif
     endfor
   endfor
@@ -188,7 +190,7 @@ print asic_gains.png
 
 figure(2)
 subplot(1,1,1)
-plot(1:num_caps, pix_std(:,1), '-b*')
+plot(1:asic_count, pix_std(:,1), '-b*')
 title("ASIC Flatness")
 xlabel("Cap Number")
 ylabel("Std Dev of Flatfield Gain (dB)")
