@@ -1,4 +1,4 @@
-clear
+clear -x filter_edge
 
 cfg_filename = 'bad_pixel_mask.ini';
 cfg_file = fopen(cfg_filename);
@@ -64,6 +64,17 @@ dark_iqr_thresh = (dark_z_thresh-0.67)/1.34
 
 ## Load in the preliminary bad pixels
 prelim_bad_mask = imread(prelim_bad_filename);
+
+## Now optionally filter out the edge pixels
+if exist("filter_edge")
+  if filter_edge != 0
+    prelim_bad_mask(1:asic_height:img_height,:) = 1;
+    prelim_bad_mask(asic_height:asic_height:img_height,:) = 1; # Filter out edge rows
+    prelim_bad_mask(:,1:(asic_width*2):img_width) = 1;
+    prelim_bad_mask(:,(asic_width*2):(asic_width*2):img_width) = 1; #Filter out submodule edge columns
+  endif
+endif
+
 ## Note where preliminary bad pixels are set
 prelim_bad_mask = prelim_bad_mask != 0;
 

@@ -1,4 +1,4 @@
-clear
+clear -x filter_edge
 
 cfg_filename = 'flatfield_map.ini';
 cfg_file = fopen(cfg_filename);
@@ -64,6 +64,14 @@ asic_x_count = image_width/asic_width;
 asic_y_count = image_height/asic_height;
 
 asic_count = asic_x_count * asic_y_count;
+
+## Assemble a mask of chip edge pixels
+edge_mask = zeros(image_height, image_width);
+edge_mask(1:asic_height:image_height,:) = 1;
+edge_mask(asic_height:asic_height:image_height,:) = 1;
+edge_mask(:, 1:(asic_width*2):image_width) = 1;
+edge_mask(:, (asic_width*2):(asic_width*2):image_width) = 1;
+edge_pixels = find(edge_mask != 0);
 
 [dark_raw, num_dark_frames] = read_xpad_image(dark_image_filename, sensor_bpp, offset, gap, image_width, image_height);
 disp('Loaded dark image')
@@ -135,9 +143,16 @@ pix_std = zeros(asic_count, num_caps);
 pix_mean = zeros(asic_count, num_caps);         # -=-= TODO Make generic
 for cap_idx = 1:num_caps
   curr_frame = bg_sub_image(:,:,cap_idx);
-  # Second parameter below is the threshold of gain deemed too low.
-  flat_raster(:,:,cap_idx) = calc_flat_asic(curr_frame, gain_thresh);
-
+  ## Second parameter below is the threshold of gain deemed too low.
+  flattened_pixels = calc_flat_asic(curr_frame, gain_thresh);
+  if exist("filter_edge") != 0
+    if filter_edge != 0
+      flattened_pixels(edge_pixels) = flattened_pixels(edge_pixels)./flattened_pixels(edge_pixels); # Set non-NaN edge pixels to unity; NaN->NaN, 0 removed by gain_thresh, x/x = 1
+    endif
+  endif
+  
+  flat_raster(:,:,cap_idx) = flattened_pixels;
+                                                                           
   asic_idx = 0;
   for row_idx=1:asic_y_count
     row_lower = (row_idx-1)*asic_height+1;
