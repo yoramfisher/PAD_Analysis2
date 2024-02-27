@@ -22,7 +22,7 @@ def main(argv):
    dvs.set("Trigger", 0)
    
 # what gain are you using? "high" or "low" ? 
-   gain = high 
+   gain = "high" 
    
 # select the number of files you want in range() for some short integration times, 0-based
 # and the increment you want on the integration times in ms 
