@@ -1,6 +1,5 @@
-function [img_stack, num_frames] = read_xpad_image(filename, bpp, offset, gap, width, height)
+function [img_stack, num_frames] = read_xpad_image(filename, bpp, offset, gap, width, height, MAX_FRAMES = 8000)
   ## Make the image to store into
-  MAX_FRAMES = 2000;            #-=-= FIXME Used for less naive memory allocation -- Can probably make arbitrarily large
   img_stack = zeros(height, width, MAX_FRAMES);
   
   img_file = fopen(filename, 'rb');
