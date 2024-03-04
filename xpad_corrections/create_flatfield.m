@@ -113,6 +113,12 @@ printf("Frames per cap: %i\n", num_bright_frames/num_caps);
 
 ## Now do the background subtraction
 bg_sub_image = bright_image-dark_image;
+if (num_caps == 1)
+  new_bg_image = zeros([size(bg_sub_image) 2]);
+  new_bg_image(:,:,1) = bg_sub_image;
+  bg_sub_image = new_bg_image;
+endif
+
 disp('Completed background subtraction')
 
 ## We now need to NaN out the bad pixels.  These are contained in two PGM files
