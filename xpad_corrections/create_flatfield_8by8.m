@@ -1,6 +1,16 @@
-clear -x filter_edge
+#
+# File: create_flatfield_8x8.m
+# 2/29/24 - Load 8 backgrounds (1 CAP each)
+# and 8 foregrounds (1 CAP each)
+#
+#
+clear
 
 cfg_filename = 'flatfield_map.ini';
+#
+#  ^Make sure to edit this file for Keck or MMPAD!
+#
+
 cfg_file = fopen(cfg_filename);
 [cfg_list, file_status] = get_config_line(cfg_file);
 fclose(cfg_file);
@@ -65,60 +75,94 @@ asic_y_count = image_height/asic_height;
 
 asic_count = asic_x_count * asic_y_count;
 
-## Assemble a mask of chip edge pixels
-edge_mask = zeros(image_height, image_width);
-edge_mask(1:asic_height:image_height,:) = 1;
-edge_mask(asic_height:asic_height:image_height,:) = 1;
-edge_mask(:, 1:(asic_width*2):image_width) = 1;
-edge_mask(:, (asic_width*2):(asic_width*2):image_width) = 1;
-edge_pixels = find(edge_mask != 0);
+num_iterations = 8;
+##dark_raw_array = zeros(num_iterations, 512, 512); % Initialize a cell array to store the results
+dark_raw_array = []
+bright_raw_array = []
 
-[dark_raw, num_dark_frames] = read_xpad_image(dark_image_filename, sensor_bpp, offset, gap, image_width, image_height);
-disp('Loaded dark image')
-printf("Dark frames count: %i\n", num_dark_frames);
+# new code
+for cap=0:7
+    cap_dark_image_filename = ...
+       sprintf('/mnt/raid/keckpad/set-pre-chess-tests-1/run-run-ff_3ms_integ_100ns_interf_cap%d_bg/frames/run-ff_3ms_integ_100ns_interf_cap%d_bg_00000001.raw',cap,cap);
+    #printf(    "%s\n", cap_dark_image_filename);
+    #disp( cap_dark_image_filename );
+        
+    # /mnt/raid/keckpad/set-pre-chess-tests-1/run-run-ff_3ms_integ_100ns_interf_cap0_bg/frames/run-ff_3ms_integ_100ns_interf_cap0_bg_00000001.raw
+    [dark_raw, num_dark_frames] = read_xpad_image(cap_dark_image_filename, sensor_bpp, ...
+    offset, gap, image_width, image_height); #  , 10  );
+    # The last value is an OPTIONAL MAX_FRAMES parameter, set it to
+    # a small number for faster testing
+    dark_raw_array = cat(3, dark_raw_array,dark_raw); % Store the result in the cell array
+    
+    printf("num_dark_frames = %d\n", num_dark_frames);
+    
+    
+  # Skip the first NUM_SKIP_IMAGE images
+  # Remember there are NUM_CAPS frames per image
+#  if (num_skip_frames > 0)
+#    disp("Skipping dark frames: ")
+#    disp(num_skip_frames)
+#    dark_raw_array(cap+1) = dark_raw_array(cap+1)(:,:,(num_skip_frames+1):num_dark_frames);
 
-# Skip the first NUM_SKIP_IMAGE images
-# Remember there are NUM_CAPS frames per image
-if (num_skip_frames > 0)
-  disp("Skipping dark frames: ")
-  disp(num_skip_frames)
-  dark_raw = dark_raw(:,:,(num_skip_frames+1):num_dark_frames);
-  num_dark_frames = num_dark_frames-num_skip_frames;
-endif
+#  endif
+
+endfor   
+#num_dark_frames = num_dark_frames-num_skip_frames;
+disp('Loaded dark image(s)')
+
+
 
 ## With the dark current image loaded, we can average the values per-cap
-dark_image = avg_caps(dark_raw, num_caps);
-clear dark_raw
-disp('Averaged dark image')
+dark_image = avg_array_not_interspersed(dark_raw_array, 8);
+# ^^ 8 is Number of CAPS
+
+# doesnt work :-( imshow (dark_image(:,:,1) )
+clear dark_raw 
+disp('Averaged dark image') 
+
+
 
 ## Now repeat for the bright image
-[bright_raw, num_bright_frames] = read_xpad_image(bright_image_filename, sensor_bpp, offset, gap, image_width, image_height);
-disp('Loaded bright image')
-printf("Bright frames count: %i\n", num_bright_frames);
+# new code
+for cap=0:7
+    cap_bright_image_filename = ...
+       sprintf('/mnt/raid/keckpad/set-pre-chess-tests-1/run-ff_3ms_integ_100ns_interf_cap%d/frames/ff_3ms_integ_100ns_interf_cap%d_00000001.raw',cap,cap);
+    #printf(    "%s\n", cap_dark_image_filename);
+    disp( cap_bright_image_filename );
+        
+    # /mnt/raid/keckpad/set-pre-chess-tests-1/run-run-ff_3ms_integ_100ns_interf_cap0_bg/frames/run-ff_3ms_integ_100ns_interf_cap0_bg_00000001.raw
+    [bright_raw, num_frames] = read_xpad_image(cap_bright_image_filename, sensor_bpp, offset, ...
+    gap, image_width, image_height); # , 10  );
+    # The last value is an OPTIONAL MAX_FRAMES parameter, set it to
+    # a small number for faster testing
+    bright_raw_array = cat(3, bright_raw_array,bright_raw); % Store the result in the cell array
+    
+    printf("num_bright_frames = %d\n", num_frames);
+    
+    
+  # Skip the first NUM_SKIP_IMAGE images
+  # Remember there are NUM_CAPS frames per image
+#  if (num_skip_frames > 0)
+#    disp("Skipping dark frames: ")
+#    disp(num_skip_frames)
+#    dark_raw_array(cap+1) = dark_raw_array(cap+1)(:,:,(num_skip_frames+1):num_dark_frames);
 
-# Skip the first NUM_SKIP_IMAGE images
-# Remember there are NUM_CAPS frames per image
-if (num_skip_frames > 0)
-  disp("Skipping frames: ")
-  disp(num_skip_frames)
-  bright_raw = bright_raw(:,:,(num_skip_frames+1):num_bright_frames);
-  num_bright_frames = num_bright_frames-num_skip_frames;
-endif
+#  endif
+
+endfor   
+
+disp('Loaded bright image')
+printf("Bright frames count: %i\n", num_frames);
+
 
 ## With the bright image loaded, we can average the values per-cap
-bright_image = avg_caps(bright_raw, num_caps);
+bright_image = avg_array_not_interspersed(bright_raw_array, 8);
 clear bright_raw
 disp('Averaged bright image')
-printf("Frames per cap: %i\n", num_bright_frames/num_caps);
+printf("Frames per cap: %i\n", num_frames/8);
 
 ## Now do the background subtraction
 bg_sub_image = bright_image-dark_image;
-if (num_caps == 1)
-  new_bg_image = zeros([size(bg_sub_image) 2]);
-  new_bg_image(:,:,1) = bg_sub_image;
-  bg_sub_image = new_bg_image;
-endif
-
 disp('Completed background subtraction')
 
 ## We now need to NaN out the bad pixels.  These are contained in two PGM files
@@ -149,16 +193,9 @@ pix_std = zeros(asic_count, num_caps);
 pix_mean = zeros(asic_count, num_caps);         # -=-= TODO Make generic
 for cap_idx = 1:num_caps
   curr_frame = bg_sub_image(:,:,cap_idx);
-  ## Second parameter below is the threshold of gain deemed too low.
-  flattened_pixels = calc_flat_asic(curr_frame, gain_thresh);
-  if exist("filter_edge") != 0
-    if filter_edge != 0
-      flattened_pixels(edge_pixels) = flattened_pixels(edge_pixels)./flattened_pixels(edge_pixels); # Set non-NaN edge pixels to unity; NaN->NaN, 0 removed by gain_thresh, x/x = 1
-    endif
-  endif
-  
-  flat_raster(:,:,cap_idx) = flattened_pixels;
-                                                                           
+  # Second parameter below is the threshold of gain deemed too low.
+  flat_raster(:,:,cap_idx) = calc_flat_asic(curr_frame, gain_thresh);
+
   asic_idx = 0;
   for row_idx=1:asic_y_count
     row_lower = (row_idx-1)*asic_height+1;
@@ -201,6 +238,20 @@ endfor
 
 fclose(ff_file)
 
+# New code - write out the NaN'ified F-B file for inspection w imageJ
+ff_filename = 'raw_flatfield.raw';
+raw_ff_file = fopen(ff_filename, 'wb');
+
+for cap_idx = 1:num_caps
+  curr_frame = bg_sub_image(:,:,cap_idx)';
+  fwrite(raw_ff_file, curr_frame, "double", 0, "l");
+endfor
+
+fclose(raw_ff_file)
+
+#
+
+
 figure(1)
 subplot(1,1,1)
 h = bar(pix_mean(:,1)-pix_mean(1,1))
@@ -217,7 +268,4 @@ xlabel("Cap Number")
 ylabel("Std Dev of Flatfield Gain (dB)")
 print asic_flatness.png
 
-
-# YF test
-imshow(curr_frame)
 
