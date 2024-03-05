@@ -53,7 +53,10 @@ def main(argv):
     for i in range(4):
         Exp_ms = i * 1 + 0.25
         dvs.set("Exposure", Exp_ms)
-        dvs.set("q2c_SetFileName", "./Integ_" + gain + "_{:.0f}".format(100*Exp_ms) + ".raw")
+        #dvs.set("q2c_SetFileName", "./Integ_" + gain + "_{:.0f}".format(100*Exp_ms) + ".raw")
+        # NOTE issue with colons in file name
+        # Require escapeing with backslash
+        # dvs.set("q2c_SetFileName", "C\:/temp/spectro.raw")
     
         # Update the UI controls
         # Important. Call this before, not After actionCapture!
