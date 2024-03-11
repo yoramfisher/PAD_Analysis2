@@ -71,6 +71,7 @@ copyfile('flatfield.raw', unityedge_dir);
 
 printf("Generating No-Edge map.\n");
 clear filter_edge
+copyfile([noedge_dir '/*.pgm'], "."); #Need the no-edge mask to NaN out the edge pixels in the flatfield
 create_flatfield;
 load corr_gen_param.octave
 copyfile('flatfield.raw', noedge_dir);
