@@ -2,7 +2,7 @@
 #program to create average standard deviation on per ASIC basis
 
 import numpy as np
-import Big_MM_load as BML
+import mmParser as BML
 import os
 import matplotlib.pyplot as plt
 import sys

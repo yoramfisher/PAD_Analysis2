@@ -6,7 +6,7 @@ import mmMaskExtract
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import Big_MM_load as BKL
+import ogmmParser as BKL
 import math
 from scipy.optimize import curve_fit
 import glob

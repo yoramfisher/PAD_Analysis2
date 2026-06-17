@@ -6,7 +6,7 @@
 # v 1.1 updated 27APR2024 - subtract base
 # v 1.2 updated 29AUG2024
 # v 1.3 04JUNE2025 - Look at DESY data again
-# V 1.4 12JUN2025 - Switch over to Big Keck Load 
+# V 1.4 12JUN2025 - Switch over to xPadParser
 #  Note the DESY data was WAS taken with the correct Digital Coefficients AFAICT. The config.json
 # has the right values.
 

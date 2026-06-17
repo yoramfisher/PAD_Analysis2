@@ -3,7 +3,7 @@
 #modded by BWM 10/7/22 for OG MM PAD frames
 
 import numpy as np
-import OGBig_MM_load as BKL
+import ogmmParser as BKL
 import os
 import matplotlib.pyplot as plt
 import sys

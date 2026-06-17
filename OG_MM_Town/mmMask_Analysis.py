@@ -1,5 +1,5 @@
 import numpy as np
-import OGBig_MM_load as BKL
+import ogmmParser as BKL
 import os
 import pickle
 

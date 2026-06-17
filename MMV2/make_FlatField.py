@@ -2,7 +2,7 @@
 #program to create a flat field correction file and save normalized correction
 
 import numpy as np
-import Big_MM_load as BML
+import mmParser as BML
 import os
 import matplotlib.pyplot as plt
 import sys

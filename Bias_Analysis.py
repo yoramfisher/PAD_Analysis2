@@ -2,7 +2,7 @@
 #program to analyze keck data while varying DAC bias voltages
 
 import numpy as np
-import Big_keck_load as BKL
+import xPadParser as BKL
 import os
 import matplotlib.pyplot as plt
 import sys

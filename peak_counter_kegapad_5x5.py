@@ -1,7 +1,7 @@
 # Counts the peaks in each submodule of a peak-detected image
 
 import numpy as np
-import Big_keck_load as BKL
+import xPadParser as BKL
 import scipy
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters

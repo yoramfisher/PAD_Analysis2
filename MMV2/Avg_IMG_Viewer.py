@@ -2,7 +2,7 @@
 #program to create pretty averaged images plot and save them
 
 import numpy as np
-import Big_MM_load as BML
+import mmParser as BML
 import os
 import matplotlib.pyplot as plt
 import sys

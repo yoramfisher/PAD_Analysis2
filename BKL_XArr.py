@@ -1,4 +1,4 @@
-#created by BWM to take Kecks big data load
+#created by BWM to take Kecks data
 #8/30/22 first creation
 
 import numpy as np

@@ -2,7 +2,7 @@
 #program to create a flat field correction file and save per cap version of normalized correction
 
 import numpy as np
-import Big_keck_load as BKL
+import xPadParser as BKL
 import os
 import matplotlib.pyplot as plt
 import sys
